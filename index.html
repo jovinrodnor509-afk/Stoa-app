@@ -504,7 +504,7 @@
       <input type="text" id="newTrackTitle" placeholder="Tit chanson an">
       <input type="text" id="newTrackDuration" placeholder="Dire (egzanp: 3:42)">
       <input type="number" id="newTrackPrice" placeholder="Pri an dola (0 = gratis)" min="0">
-      <label style="font-size:12px;color:var(--parchment-dim);display:block;margin-bottom:6px;">Chwazi fichye MP3 nan telefòn ou (maksimòm 8 Mo):</label>
+      <label style="font-size:12px;color:var(--parchment-dim);display:block;margin-bottom:6px;">Chwazi fichye MP3 nan telefòn ou (maksimòm 6 Mo):</label>
       <input type="file" id="newTrackFile" accept="audio/*">
       <div class="upload-progress" id="trackUploadProgress"><div class="upload-progress-bar" id="trackUploadBar"></div></div>
       <div class="upload-status" id="trackUploadStatus"></div>
@@ -1307,20 +1307,27 @@
     function finishSave(fileUrl){
       const data = {title, sub: dur + ' · MP3', price};
       if(fileUrl) data.previewUrl = fileUrl;
-      tracksRef.push(data);
-      document.getElementById('newTrackTitle').value='';
-      document.getElementById('newTrackDuration').value='';
-      document.getElementById('newTrackPrice').value='';
-      document.getElementById('newTrackUrl').value='';
-      fileInput.value='';
-      progressWrap.classList.remove('show');
-      statusText.textContent='';
-      saveBtn.disabled = false;
-      document.getElementById('addTrackForm').classList.remove('open');
+      tracksRef.push(data)
+        .then(() => {
+          document.getElementById('newTrackTitle').value='';
+          document.getElementById('newTrackDuration').value='';
+          document.getElementById('newTrackPrice').value='';
+          document.getElementById('newTrackUrl').value='';
+          fileInput.value='';
+          progressWrap.classList.remove('show');
+          statusText.textContent='';
+          saveBtn.disabled = false;
+          document.getElementById('addTrackForm').classList.remove('open');
+        })
+        .catch((err) => {
+          alert('Erè: chanson an pa t kapab anrejistre. ' + err.message + ' — eseye yon fichye pi piti (anba 6 Mo).');
+          saveBtn.disabled = false;
+          progressWrap.classList.remove('show');
+        });
     }
 
     if(file){
-      const maxSizeMB = 8;
+      const maxSizeMB = 6;
       if(file.size > maxSizeMB * 1024 * 1024){
         alert(`Fichye a twò gwo (${(file.size/1024/1024).toFixed(1)} Mo). Limit la se ${maxSizeMB} Mo pou metòd sa a. Konprese fichye a oswa itilize yon lyen.`);
         return;
@@ -1357,16 +1364,23 @@
     const statusText = document.getElementById('photoUploadStatus');
 
     function finishSave(finalUrl, finalIsVideo){
-      galleryRef.push({label, price, customUrl: finalUrl, isVideo: finalIsVideo});
-      document.getElementById('newPhotoLabel').value='';
-      document.getElementById('newPhotoUrl').value='';
-      document.getElementById('newPhotoPrice').value='';
-      document.getElementById('newPhotoIsVideo').checked = false;
-      fileInput.value='';
-      progressWrap.classList.remove('show');
-      statusText.textContent='';
-      saveBtn.disabled = false;
-      document.getElementById('addPhotoForm').classList.remove('open');
+      galleryRef.push({label, price, customUrl: finalUrl, isVideo: finalIsVideo})
+        .then(() => {
+          document.getElementById('newPhotoLabel').value='';
+          document.getElementById('newPhotoUrl').value='';
+          document.getElementById('newPhotoPrice').value='';
+          document.getElementById('newPhotoIsVideo').checked = false;
+          fileInput.value='';
+          progressWrap.classList.remove('show');
+          statusText.textContent='';
+          saveBtn.disabled = false;
+          document.getElementById('addPhotoForm').classList.remove('open');
+        })
+        .catch((err) => {
+          alert('Erè: fichye a pa t kapab anrejistre. ' + err.message + ' — eseye yon fichye pi piti (anba 5 Mo).');
+          saveBtn.disabled = false;
+          progressWrap.classList.remove('show');
+        });
     }
 
     if(file){
