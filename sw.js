@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stoa-cache-v3';
+const CACHE_NAME = 'stoa-cache-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -27,10 +27,23 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Network-first for page navigation (HTML) so updates are always picked up immediately
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+  // Cache-first for static assets (images, icons, manifest)
   event.respondWith(
     caches.match(event.request).then((cached) => {
       return cached || fetch(event.request).then((response) => {
-        // Only cache same-origin GET requests
         if (event.request.method === 'GET' && event.request.url.startsWith(self.location.origin)) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
