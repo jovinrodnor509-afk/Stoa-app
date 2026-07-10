@@ -754,6 +754,32 @@
     reader.readAsDataURL(file);
   }
 
+  // Resize an image file client-side (max width 900px) before converting to base64,
+  // so photos load fast in the gallery grid instead of full camera resolution.
+  function resizeImageToBase64(file, maxWidth, onDone, onError){
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      img.onload = () => {
+        let { width, height } = img;
+        if(width > maxWidth){
+          height = Math.round(height * (maxWidth / width));
+          width = maxWidth;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        onDone(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = () => onError(new Error('Pa t kapab louvri imaj la.'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => onError(new Error('Pa t kapab li fichye a.'));
+    reader.readAsDataURL(file);
+  }
+
   function uploadToCloudinary(file, onProgress, onDone, onError){
     const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
     const formData = new FormData();
@@ -883,7 +909,11 @@
       setTimeout(()=>{ btn.textContent = original; }, 1200);
     }
     if(e.target.dataset.removeTrack){
-      if(confirm('Efase chanson sa a pou tout moun?')) tracksRef.child(e.target.dataset.removeTrack).remove();
+      if(confirm('Efase chanson sa a pou tout moun?')){
+        const idToRemove = e.target.dataset.removeTrack;
+        tracksRef.child(idToRemove).remove();
+        db.ref('trackMedia/' + idToRemove).remove();
+      }
     }
     if(e.target.classList.contains('dl-btn')){
       if(!requireRegistration('telechaje oswa achte chanson sa a')) return;
@@ -917,22 +947,50 @@
     miniPlayPause.textContent = (!previewAudio.paused && previewAudio.dataset.playingId) ? '⏸' : '▶';
   }
 
+  const trackMediaCache = {}; // in-memory cache so replays don't refetch from Firebase
+
+  function actuallyPlay(id, url){
+    previewAudio.src = url;
+    previewAudio.dataset.playingId = id;
+    previewAudio.play().catch(()=> alert('Pa gen demo odyo konekte pou chanson sa a ankò.'));
+    syncTrackButtons();
+  }
+
   function playTrackById(id){
     const track = tracks.find(t => t.id === id);
     if(!track) return;
-    const previewUrl = track.previewUrl || 'https://cdn.pixabay.com/audio/2022/03/10/audio_d1718ab41b.mp3';
-    if(previewAudio.dataset.playingId === id && !previewAudio.paused){
-      previewAudio.pause();
-    } else if(previewAudio.dataset.playingId === id && previewAudio.paused){
-      previewAudio.play();
-    } else {
-      previewAudio.src = previewUrl;
-      previewAudio.dataset.playingId = id;
-      previewAudio.play().catch(()=> alert('Pa gen demo odyo konekte pou chanson sa a ankò.'));
-    }
     miniPlayer.classList.add('show');
     miniPlayerTitle.textContent = track.title;
-    syncTrackButtons();
+
+    if(previewAudio.dataset.playingId === id && !previewAudio.paused){
+      previewAudio.pause();
+      syncTrackButtons();
+      return;
+    }
+    if(previewAudio.dataset.playingId === id && previewAudio.paused){
+      previewAudio.play();
+      syncTrackButtons();
+      return;
+    }
+
+    if(track.hasMedia){
+      if(trackMediaCache[id]){
+        actuallyPlay(id, trackMediaCache[id]);
+        return;
+      }
+      miniPlayerTitle.textContent = track.title + ' (ap chaje...)';
+      db.ref('trackMedia/' + id).once('value').then((snap) => {
+        const url = snap.val();
+        if(!url){ alert('Pa gen demo odyo konekte pou chanson sa a ankò.'); return; }
+        trackMediaCache[id] = url;
+        miniPlayerTitle.textContent = track.title;
+        actuallyPlay(id, url);
+      }).catch(() => alert('Erè pandan chajman mizik la.'));
+      return;
+    }
+
+    const previewUrl = track.previewUrl || 'https://cdn.pixabay.com/audio/2022/03/10/audio_d1718ab41b.mp3';
+    actuallyPlay(id, previewUrl);
   }
 
   function skipTrack(direction){
@@ -1324,8 +1382,17 @@
 
     function finishSave(fileUrl){
       const data = {title, sub: dur + ' · MP3', price};
-      if(fileUrl) data.previewUrl = fileUrl;
-      tracksRef.push(data)
+      const isBase64 = fileUrl && fileUrl.startsWith('data:');
+      if(fileUrl && !isBase64) data.previewUrl = fileUrl;
+      if(isBase64) data.hasMedia = true;
+
+      const newRef = tracksRef.push();
+      newRef.set(data)
+        .then(() => {
+          if(isBase64){
+            return db.ref('trackMedia/' + newRef.key).set(fileUrl);
+          }
+        })
         .then(() => {
           document.getElementById('newTrackTitle').value='';
           document.getElementById('newTrackDuration').value='';
@@ -1410,12 +1477,20 @@
       isVideo = file.type.startsWith('video/');
       saveBtn.disabled = true;
       progressWrap.classList.add('show');
-      statusText.textContent = 'Ap trete fichye a: 0%';
-      fileToBase64(file,
-        (pct) => { progressBar.style.width = pct + '%'; statusText.textContent = 'Ap trete fichye a: ' + pct + '%'; },
-        (dataUrl) => finishSave(dataUrl, isVideo),
-        (err) => { alert('Erè: ' + err.message); saveBtn.disabled = false; progressWrap.classList.remove('show'); }
-      );
+      statusText.textContent = 'Ap trete fichye a...';
+      if(isVideo){
+        fileToBase64(file,
+          (pct) => { progressBar.style.width = pct + '%'; statusText.textContent = 'Ap trete fichye a: ' + pct + '%'; },
+          (dataUrl) => finishSave(dataUrl, isVideo),
+          (err) => { alert('Erè: ' + err.message); saveBtn.disabled = false; progressWrap.classList.remove('show'); }
+        );
+      } else {
+        progressBar.style.width = '50%';
+        resizeImageToBase64(file, 900,
+          (dataUrl) => { progressBar.style.width = '100%'; finishSave(dataUrl, isVideo); },
+          (err) => { alert('Erè: ' + err.message); saveBtn.disabled = false; progressWrap.classList.remove('show'); }
+        );
+      }
     } else {
       finishSave(url, isVideo);
     }
