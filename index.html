@@ -14,6 +14,9 @@
 <meta name="theme-color" content="#1c1b19">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://stoa-1b15e-default-rtdb.firebaseio.com">
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://stoa-1b15e-default-rtdb.firebaseio.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -42,6 +45,7 @@
 
   /* HERO */
   header.hero{
+    position: relative;
     padding: 56px 20px 40px;
     text-align:center;
     border-bottom: 1px solid var(--stone-line);
@@ -259,6 +263,14 @@
     border-radius:4px; text-decoration:none; letter-spacing:0.5px;
   }
   .gallery-dl.paid{ background: var(--bronze); color: var(--stone-dark); border-color: var(--bronze); }
+  .gallery-react{
+    position:absolute; bottom:8px; display:flex; gap:6px;
+  }
+  .gallery-react-btn{
+    background: rgba(0,0,0,0.55); border:1px solid var(--stone-line); color:var(--parchment);
+    font-size:11px; padding:3px 7px; border-radius:10px; cursor:pointer;
+  }
+  .gallery-react-btn.active{ border-color: var(--bronze-bright); color: var(--bronze-bright); }
 
   /* WISDOM ARCHIVE */
   .wisdom-card{
@@ -302,6 +314,26 @@
   }
   .about-contact a:hover{ color: var(--bronze-bright); }
   .about-contact .tag{ color: var(--bronze); font-size:12px; width:70px; text-transform:uppercase; letter-spacing:1px; flex-shrink:0; }
+
+  /* INSTALL BANNER */
+  .install-banner{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    max-width:720px; margin: 20px auto 0; padding: 14px 16px;
+    background: linear-gradient(rgba(176,133,79,0.14), rgba(176,133,79,0.08));
+    border: 1px solid var(--bronze); border-radius: 8px;
+  }
+  .install-text{ display:flex; flex-direction:column; gap:2px; font-size:12px; color: var(--parchment-dim); }
+  .install-text strong{ font-size:14px; color: var(--parchment); }
+  .install-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  #installBtn{
+    background: var(--bronze); color: var(--stone-dark); border:none;
+    padding:10px 18px; border-radius:6px; font-weight:700; font-size:13px;
+    letter-spacing:0.5px; text-transform:uppercase; cursor:pointer; white-space:nowrap;
+  }
+  .install-dismiss{
+    background:transparent; border:none; color:var(--parchment-dim);
+    font-size:16px; cursor:pointer; padding:4px 8px;
+  }
 
   /* SHARE FAB + MODAL */
   .share-fab{
@@ -404,6 +436,22 @@
     background: var(--bronze); border:none; color: var(--stone-dark);
     padding: 8px 12px; border-radius:4px; font-size:12px; font-weight:700; cursor:pointer;
   }
+  .native-share-btn{
+    width:100%; background: var(--bronze); color: var(--stone-dark); border:none;
+    padding:12px; border-radius:6px; font-weight:700; letter-spacing:0.5px;
+    cursor:pointer; margin-bottom:14px; font-size:14px;
+  }
+  .share-grid{
+    display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:14px;
+  }
+  .share-grid-btn{
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    background: var(--stone-dark); border:1px solid var(--stone-line); border-radius:8px;
+    padding:12px 4px; cursor:pointer; color: var(--parchment); font-size:11px;
+    text-decoration:none; transition: border-color 0.2s;
+  }
+  .share-grid-btn:hover{ border-color: var(--bronze-bright); }
+  .share-grid-btn .icon{ font-size:22px; }
 
   footer{
     text-align:center; padding: 40px 20px 90px;
@@ -451,6 +499,61 @@
   }
   .subscriber-row .sub-name{ font-weight:600; color: var(--parchment); }
   .subscriber-row .sub-email{ color: var(--parchment-dim); font-size:12px; }
+  /* NOTIFICATIONS */
+  .notif-bell-wrap{ position:absolute; top:16px; right:16px; }
+  .notif-bell{
+    background: rgba(0,0,0,0.3); border: 1px solid var(--stone-line);
+    color: var(--parchment); font-size:16px; border-radius:20px;
+    padding:6px 10px; cursor:pointer; position:relative;
+  }
+  .notif-badge{
+    position:absolute; top:-4px; right:-4px; background:#c0392b; color:#fff;
+    font-size:10px; font-weight:700; border-radius:10px; padding:1px 5px; line-height:1.4;
+  }
+  .notif-dropdown{
+    display:none; position:absolute; top:40px; right:0; width:260px;
+    background: var(--stone-mid); border:1px solid var(--bronze);
+    border-radius:8px; padding:12px; z-index:60; text-align:left;
+  }
+  .notif-dropdown.open{ display:block; }
+  .notif-header{ font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--bronze-bright); margin-bottom:8px; }
+  .notif-item{ font-size:13px; padding:6px 0; border-bottom:1px solid var(--stone-line); color:var(--parchment); }
+  .notif-empty{ font-size:12px; color:var(--parchment-dim); font-style:italic; padding:6px 0; }
+  .notif-mark-read{
+    margin-top:8px; width:100%; background:transparent; border:1px solid var(--bronze);
+    color:var(--bronze-bright); padding:6px; border-radius:4px; cursor:pointer; font-size:12px;
+  }
+
+  /* REACTIONS (like/dislike) */
+  .reactions{ display:flex; gap:10px; margin-top:8px; }
+  .react-btn{
+    background:transparent; border:1px solid var(--stone-line); color:var(--parchment-dim);
+    font-size:12px; padding:4px 10px; border-radius:12px; cursor:pointer; transition:all 0.2s;
+  }
+  .react-btn.active{ border-color:var(--bronze-bright); color:var(--bronze-bright); }
+  .react-btn:hover{ border-color:var(--bronze-bright); }
+
+  /* CHAT */
+  .chat-box{
+    display:flex; flex-direction:column; gap:8px; max-height:420px; overflow-y:auto;
+    background: var(--stone-mid); border:1px solid var(--stone-line); border-radius:8px;
+    padding:14px; margin-bottom:14px;
+  }
+  .chat-msg{ font-size:13px; line-height:1.4; }
+  .chat-msg .chat-name{ color: var(--bronze-bright); font-weight:600; }
+  .chat-msg .chat-time{ color: var(--parchment-dim); font-size:11px; margin-left:6px; }
+  .chat-msg .chat-text{ color: var(--parchment); margin-top:2px; }
+  .chat-empty{ color:var(--parchment-dim); font-style:italic; font-size:13px; text-align:center; padding:20px 0; }
+  .chat-input-row{ display:flex; gap:8px; }
+  .chat-input-row input{
+    flex:1; background: var(--stone-mid); border:1px solid var(--stone-line);
+    color: var(--parchment); padding:10px; border-radius:6px; font-family:'Inter',sans-serif; font-size:13px;
+  }
+  .chat-input-row button{
+    background: var(--bronze); color: var(--stone-dark); border:none;
+    padding:10px 16px; border-radius:6px; cursor:pointer; font-weight:600; font-size:13px;
+  }
+  .chat-del{ color:#c0392b; font-size:11px; cursor:pointer; margin-left:8px; }
 </style>
 </head>
 <body>
@@ -472,6 +575,14 @@
   <div class="quote-block" id="heroQuote">Chaje your load.</div>
   <div class="quote-author" id="heroAuthor">—</div>
   <div class="chisel-line"></div>
+  <div class="notif-bell-wrap" id="notifBellWrap" style="display:none;">
+    <button class="notif-bell" id="notifBell">🔔 <span class="notif-badge" id="notifBadge" style="display:none;">0</span></button>
+    <div class="notif-dropdown" id="notifDropdown">
+      <div class="notif-header">Sa ki nouvo</div>
+      <div id="notifList"></div>
+      <button class="notif-mark-read" id="notifMarkRead">Make tou li</button>
+    </div>
+  </div>
 </header>
 
 <nav>
@@ -479,9 +590,21 @@
   <button data-panel="gallery">Imaj</button>
   <button data-panel="videos">Videyo</button>
   <button data-panel="wisdom">Sajès</button>
+  <button data-panel="chat">Chat</button>
   <button data-panel="about">Sou Mwen</button>
   <button data-panel="stats">Estatistik</button>
 </nav>
+
+<div class="install-banner" id="installBanner" style="display:none;">
+  <div class="install-text">
+    <strong>📲 Enstale STOA sou telefòn ou</strong>
+    <span id="installSubtext">Aksè pi rapid, menm san ouvri navigatè a.</span>
+  </div>
+  <div class="install-actions">
+    <button id="installBtn">Enstale</button>
+    <button id="installDismiss" class="install-dismiss">✕</button>
+  </div>
+</div>
 
 <div class="register-banner" id="registerBanner">
   <h3>Rete Konekte ak STOA</h3>
@@ -577,6 +700,17 @@
     <div class="no-results" id="noWisdomResults" style="display:none">Pa gen sitasyon ki koresponn.</div>
   </section>
 
+  <section class="panel" id="chat">
+    <div class="section-title">Chat ak Kominote a</div>
+    <div class="chat-box" id="chatBox">
+      <div class="chat-empty">Pa gen mesaj ankò. Se ou ki pou kòmanse!</div>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chatInput" placeholder="Ekri yon mesaj...">
+      <button id="chatSend">Voye</button>
+    </div>
+  </section>
+
   <section class="panel" id="about">
     <div class="about-hero">
       <img class="about-photo" src="https://picsum.photos/seed/artist-profile/220/220" alt="Foto pwofil Jovin Rodnor">
@@ -594,14 +728,6 @@
     </div>
 
     <div class="about-contact" id="aboutContactDisplay" style="display:none;"></div>
-
-    <div class="wisdom-card" style="text-align:left; margin-bottom:20px;">
-      <div class="section-title" style="font-size:17px; margin-bottom:10px;">Rezon Dèt STOA</div>
-      <p style="font-size:14px; line-height:1.7; color: var(--parchment-dim);">
-        STOA pa yon senp app — se yon konpayon pou lavi chak jou. Misyon l se ede moun jwenn kalm nan mitan tiraka, wè bèlte atravè imaj, e kenbe lespri yo fò ak sajès ki la depi tan ansyen filozòf estoyisyen yo.
-        Mizik la pou reprann souf, foto yo pou wè mond lan ak lòt je, e sitasyon yo pou sonje: sa nou kontwole se sèlman fason nou reyaji.
-      </p>
-    </div>
 
     <div class="admin-only" style="display:none;margin-top:20px;">
       <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
@@ -664,6 +790,15 @@
   <div class="modal-box">
     <button class="modal-close" id="closeModal">✕</button>
     <h3>Pataje STOA</h3>
+    <button class="native-share-btn" id="nativeShareBtn" style="display:none;">📤 Pataje ak Aplikasyon Telefòn ou</button>
+    <div class="share-grid">
+      <a class="share-grid-btn" id="shareWhatsapp" target="_blank"><span class="icon">💬</span>WhatsApp</a>
+      <a class="share-grid-btn" id="shareFacebook" target="_blank"><span class="icon">📘</span>Facebook</a>
+      <a class="share-grid-btn" id="shareMessenger" target="_blank"><span class="icon">💌</span>Messenger</a>
+      <a class="share-grid-btn" id="shareTwitter" target="_blank"><span class="icon">🐦</span>X / Twitter</a>
+      <a class="share-grid-btn" id="shareSms"><span class="icon">✉️</span>SMS</a>
+      <a class="share-grid-btn" id="shareEmail"><span class="icon">📧</span>Imèl</a>
+    </div>
     <div id="qrcode-canvas"></div>
     <div class="share-link-box">
       <input type="text" id="shareLinkInput" readonly>
@@ -689,10 +824,12 @@
       <a id="payPaypalLink" href="#" target="_blank" style="color:var(--bronze-bright);font-size:16px;font-weight:700;text-decoration:underline;">—</a>
     </div>
     <div class="payment-note">Peman sa a fèt pou moun ki an Ayiti. Voye montan an nan youn nan nimewo MonCash oswa NatCash yo, epi voye yon skrinshòt konfimasyon an bay Jovin pou l debloke aksè a.</div>
+    <div class="payment-note" style="margin-top:6px;">⚠️ Aksè a valab pou <b>2 jou</b> apre ou konfime peman an — apre sa, w ap bezwen achte ankò.</div>
+    <button class="dl-btn paid-btn" id="confirmPaidBtn" style="width:100%; margin-top:12px;">Mwen fin peye ✓</button>
   </div>
 </div>
 
-<footer>STOA — kreye pa Jovin Rodnor · PROTOTIP, pa gen fichye reyèl ki konekte ankò</footer>
+<footer>STOA — kreye pa Jovin Rodnor</footer>
 
 <script>
   // ---- Navigation ----
@@ -740,6 +877,69 @@
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
+
+  // ---- Anonymous but persistent user ID (used for purchases + reactions) ----
+  function getUid(){
+    let uid = localStorage.getItem('stoa_uid');
+    if(!uid){
+      uid = 'u' + Date.now() + Math.random().toString(36).slice(2,8);
+      localStorage.setItem('stoa_uid', uid);
+    }
+    return uid;
+  }
+  const STOA_UID = getUid();
+  const PURCHASE_VALID_MS = 2 * 24 * 60 * 60 * 1000; // 2 jou
+
+  // ---- Purchases (self-confirmed "Mwen fin peye") tracked so paid items re-lock after 2 days ----
+  let purchasesCache = {};
+  const purchasesRef = db.ref('purchases');
+  purchasesRef.on('value', (snap) => {
+    purchasesCache = snap.val() || {};
+    if(typeof renderTracks === 'function') renderTracks(currentMusicFilter);
+    if(typeof renderGallery === 'function') renderGallery(currentGalleryFilter);
+  });
+  function purchaseKey(type, id){ return type + '_' + id; }
+  function isPurchaseActive(type, id){
+    if(isAdmin) return true;
+    const rec = purchasesCache[purchaseKey(type, id)];
+    if(!rec || !rec[STOA_UID]) return false;
+    return (Date.now() - rec[STOA_UID]) < PURCHASE_VALID_MS;
+  }
+  function confirmPurchase(type, id){
+    purchasesRef.child(purchaseKey(type, id)).child(STOA_UID).set(Date.now());
+  }
+  // Re-check every few minutes so a 2-day-old purchase re-locks even without a data change
+  setInterval(()=>{
+    if(typeof renderTracks === 'function') renderTracks(currentMusicFilter);
+    if(typeof renderGallery === 'function') renderGallery(currentGalleryFilter);
+  }, 5 * 60 * 1000);
+
+  // ---- Reactions (like/dislike) shared across everyone, one vote per device ----
+  function reactionKey(type, id){ return 'stoa_react_' + type + '_' + id; }
+  function myReaction(type, id){ return localStorage.getItem(reactionKey(type, id)) || ''; }
+  function reactionHTML(type, id, likes, dislikes){
+    const mine = myReaction(type, id);
+    return `
+      <div class="reactions">
+        <button class="react-btn ${mine==='like'?'active':''}" data-react="like" data-react-type="${type}" data-react-id="${id}">👍 ${likes||0}</button>
+        <button class="react-btn ${mine==='dislike'?'active':''}" data-react="dislike" data-react-type="${type}" data-react-id="${id}">👎 ${dislikes||0}</button>
+      </div>`;
+  }
+  function handleReactionClick(refRoot, type, id, choice){
+    const key = reactionKey(type, id);
+    const current = localStorage.getItem(key) || '';
+    if(current === choice){
+      // toggle off
+      refRoot.child(id).child(choice === 'like' ? 'likes' : 'dislikes').transaction(v => Math.max((v||0)-1, 0));
+      localStorage.removeItem(key);
+    } else {
+      if(current){
+        refRoot.child(id).child(current === 'like' ? 'likes' : 'dislikes').transaction(v => Math.max((v||0)-1, 0));
+      }
+      refRoot.child(id).child(choice === 'like' ? 'likes' : 'dislikes').transaction(v => (v||0)+1);
+      localStorage.setItem(key, choice);
+    }
+  }
 
   // ---- Cloudinary config (free file hosting, no credit card needed) ----
   // IMPORTANT: Jovin must replace these two values after creating a free Cloudinary account.
@@ -848,6 +1048,7 @@
     const data = snapshot.val() || {};
     tracks = Object.keys(data).map(key => ({ id: key, ...data[key] }));
     renderTracks(currentMusicFilter);
+    if(typeof refreshNotifications === 'function') refreshNotifications();
   });
 
   // Seed default tracks only if the database is empty (runs once, harmless if repeated)
@@ -875,10 +1076,11 @@
       div.className='track';
       const savedLyrics = t.lyrics || '';
       const isFree = t.price === 0;
+      const unlocked = isFree || isPurchaseActive('track', id);
       const priceBadge = isFree
         ? `<span class="price-badge free">Gratis</span>`
         : `<span class="price-badge paid">$${t.price}</span>`;
-      const dlBtn = isFree
+      const dlBtn = unlocked
         ? `<button class="dl-btn" data-track-id="${id}">Telechaje</button>`
         : `<button class="dl-btn paid-btn" data-track-id="${id}" data-price="${t.price}">Achte $${t.price}</button>`;
       const removeBtn = isAdmin ? `<button class="item-remove" data-remove-track="${id}">Efase</button>` : '';
@@ -897,6 +1099,7 @@
           ${dlBtn}
           ${removeBtn}
         </div>
+        ${reactionHTML('track', id, t.likes, t.dislikes)}
         <div class="lyrics-panel" id="lyrics-${id}">
           <textarea id="lyrics-text-${id}" placeholder="Ekri oswa kole parol chanson '${t.title}' la isit la...">${savedLyrics}</textarea>
           <button class="lyrics-save" data-idx="${id}">Anrejistre</button>
@@ -936,13 +1139,17 @@
       if(e.target.classList.contains('paid-btn')){
         const trackId = e.target.dataset.trackId;
         const track = tracks.find(t => t.id === trackId);
-        showPaymentModal(track ? track.title : 'Chanson', e.target.dataset.price);
+        showPaymentModal(track ? track.title : 'Chanson', e.target.dataset.price, 'track', trackId);
       } else {
         alert('Telechajman an ap kòmanse...');
       }
     }
     if(e.target.dataset.preview){
       playTrackById(e.target.dataset.preview);
+    }
+    if(e.target.dataset.react){
+      if(!requireRegistration('reyaji sou yon chanson')) return;
+      handleReactionClick(tracksRef, e.target.dataset.reactType, e.target.dataset.reactId, e.target.dataset.react);
     }
   });
 
@@ -1040,6 +1247,7 @@
     galleryItems = Object.keys(data).map(key => ({ id: key, ...data[key] }));
     renderGallery(currentGalleryFilter);
     renderVideos(currentVideoFilter);
+    if(typeof refreshNotifications === 'function') refreshNotifications();
   });
 
   galleryRef.once('value', (snapshot) => {
@@ -1066,15 +1274,18 @@
       const a = document.createElement('a');
       a.href = '#';
       const isFree = g.price === 0;
+      const unlocked = isFree || isPurchaseActive('gallery', g.id);
       const badge = isFree
         ? `<span class="price-badge free">Gratis</span>`
         : `<span class="price-badge paid">$${g.price}</span>`;
-      const dl = isFree
+      const dl = unlocked
         ? `<span class="gallery-dl">↓</span>`
         : `<span class="gallery-dl paid" data-item-id="${g.id}" data-price="${g.price}" data-item-label="${g.label}">Achte $${g.price}</span>`;
       const imgSrc = g.customUrl || `https://picsum.photos/seed/stoa${g.seed || g.id}/500/625`;
       const removeBtn = isAdmin ? `<span class="gallery-dl" style="left:8px;right:auto;bottom:auto;top:34px;background:rgba(201,106,90,0.85);cursor:pointer" data-remove-photo="${g.id}">Efase</span>` : '';
-      a.innerHTML = `<img src="${imgSrc}" alt="${g.label}">${badge}${dl}${removeBtn}`;
+      const mine = myReaction('gallery', g.id);
+      const reactBar = `<span class="gallery-react" style="left:8px;"><span class="gallery-react-btn ${mine==='like'?'active':''}" data-react="like" data-react-type="gallery" data-react-id="${g.id}">👍 ${g.likes||0}</span><span class="gallery-react-btn ${mine==='dislike'?'active':''}" data-react="dislike" data-react-type="gallery" data-react-id="${g.id}">👎 ${g.dislikes||0}</span></span>`;
+      a.innerHTML = `<img src="${imgSrc}" alt="${g.label}" loading="lazy" decoding="async">${badge}${dl}${removeBtn}${reactBar}`;
       a.dataset.viewSrc = imgSrc;
       a.dataset.isVideo = '0';
       a.dataset.label = g.label;
@@ -1099,15 +1310,18 @@
       const a = document.createElement('a');
       a.href = '#';
       const isFree = g.price === 0;
+      const unlocked = isFree || isPurchaseActive('gallery', g.id);
       const badge = isFree
         ? `<span class="price-badge free">Gratis</span>`
         : `<span class="price-badge paid">$${g.price}</span>`;
-      const dl = isFree
+      const dl = unlocked
         ? `<span class="gallery-dl">↓</span>`
         : `<span class="gallery-dl paid" data-item-id="${g.id}" data-price="${g.price}" data-item-label="${g.label}">Achte $${g.price}</span>`;
       const vidSrc = g.customUrl;
       const removeBtn = isAdmin ? `<span class="gallery-dl" style="left:8px;right:auto;bottom:auto;top:34px;background:rgba(201,106,90,0.85);cursor:pointer" data-remove-photo="${g.id}">Efase</span>` : '';
-      a.innerHTML = `<video src="${vidSrc}" muted playsinline style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:6px;border:1px solid var(--stone-line);"></video>${badge}${dl}${removeBtn}`;
+      const mine = myReaction('gallery', g.id);
+      const reactBar = `<span class="gallery-react" style="left:8px;"><span class="gallery-react-btn ${mine==='like'?'active':''}" data-react="like" data-react-type="gallery" data-react-id="${g.id}">👍 ${g.likes||0}</span><span class="gallery-react-btn ${mine==='dislike'?'active':''}" data-react="dislike" data-react-type="gallery" data-react-id="${g.id}">👎 ${g.dislikes||0}</span></span>`;
+      a.innerHTML = `<video src="${vidSrc}" muted playsinline preload="metadata" loading="lazy" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:6px;border:1px solid var(--stone-line);"></video>${badge}${dl}${removeBtn}${reactBar}`;
       a.dataset.viewSrc = vidSrc;
       a.dataset.isVideo = '1';
       a.dataset.label = g.label;
@@ -1122,11 +1336,17 @@
       if(confirm('Efase videyo sa a pou tout moun?')) galleryRef.child(e.target.dataset.removePhoto).remove();
       return;
     }
+    if(e.target.dataset.react){
+      e.preventDefault();
+      if(!requireRegistration('reyaji sou yon videyo')) return;
+      handleReactionClick(galleryRef, e.target.dataset.reactType, e.target.dataset.reactId, e.target.dataset.react);
+      return;
+    }
     if(e.target.classList.contains('gallery-dl') && !e.target.dataset.removePhoto){
       e.preventDefault();
       if(!requireRegistration('telechaje oswa achte videyo sa a')) return;
       if(e.target.classList.contains('paid')){
-        showPaymentModal(e.target.dataset.itemLabel || 'Foto/Videyo', e.target.dataset.price);
+        showPaymentModal(e.target.dataset.itemLabel || 'Foto/Videyo', e.target.dataset.price, 'gallery', e.target.dataset.itemId);
       } else {
         alert('Telechajman an ap kòmanse...');
       }
@@ -1146,11 +1366,17 @@
       if(confirm('Efase foto sa a pou tout moun?')) galleryRef.child(e.target.dataset.removePhoto).remove();
       return;
     }
+    if(e.target.dataset.react){
+      e.preventDefault();
+      if(!requireRegistration('reyaji sou yon foto')) return;
+      handleReactionClick(galleryRef, e.target.dataset.reactType, e.target.dataset.reactId, e.target.dataset.react);
+      return;
+    }
     if(e.target.classList.contains('gallery-dl') && !e.target.dataset.removePhoto){
       e.preventDefault();
       if(!requireRegistration('telechaje oswa achte foto/videyo sa a')) return;
       if(e.target.classList.contains('paid')){
-        showPaymentModal(e.target.dataset.itemLabel || 'Foto/Videyo', e.target.dataset.price);
+        showPaymentModal(e.target.dataset.itemLabel || 'Foto/Videyo', e.target.dataset.price, 'gallery', e.target.dataset.itemId);
       } else {
         alert('Telechajman an ap kòmanse...');
       }
@@ -1182,6 +1408,7 @@
     const data = snapshot.val() || {};
     wisdom = Object.keys(data).map(key => ({ id: key, ...data[key] }));
     renderWisdom(currentWisdomFilter);
+    if(typeof refreshNotifications === 'function') refreshNotifications();
   });
 
   wisdomRef.once('value', (snapshot) => {
@@ -1306,7 +1533,7 @@
       const div = document.createElement('div');
       div.className='wisdom-card';
       const removeBtn = isAdmin ? `<button class="item-remove" data-remove-wisdom="${w.id}">Efase</button>` : '';
-      div.innerHTML = `<div class="wisdom-text">"${w.text}"</div><div class="wisdom-author">${w.author} ${removeBtn}</div>`;
+      div.innerHTML = `<div class="wisdom-text">"${w.text}"</div><div class="wisdom-author">${w.author} ${removeBtn}</div>${reactionHTML('wisdom', w.id, w.likes, w.dislikes)}`;
       wisdomList.appendChild(div);
     });
   }
@@ -1315,6 +1542,10 @@
   wisdomList.addEventListener('click', (e)=>{
     if(e.target.dataset.removeWisdom){
       if(confirm('Efase sitasyon sa a pou tout moun?')) wisdomRef.child(e.target.dataset.removeWisdom).remove();
+    }
+    if(e.target.dataset.react){
+      if(!requireRegistration('reyaji sou yon sitasyon')) return;
+      handleReactionClick(wisdomRef, e.target.dataset.reactType, e.target.dataset.reactId, e.target.dataset.react);
     }
   });
 
@@ -1328,7 +1559,29 @@
 
   shareFab.addEventListener('click', ()=>{
     const url = window.location.href;
+    const shareText = 'Vin dekouvri STOA — mizik, foto, ak sajès estoyisyen pa Jovin Rodnor.';
     shareLinkInput.value = url;
+
+    const encodedUrl = encodeURIComponent(url);
+    const encodedText = encodeURIComponent(shareText);
+
+    document.getElementById('shareWhatsapp').href = `https://wa.me/?text=${encodedText}%20${encodedUrl}`;
+    document.getElementById('shareFacebook').href = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+    document.getElementById('shareMessenger').href = `fb-messenger://share/?link=${encodedUrl}`;
+    document.getElementById('shareTwitter').href = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`;
+    document.getElementById('shareSms').href = `sms:?body=${encodedText}%20${encodedUrl}`;
+    document.getElementById('shareEmail').href = `mailto:?subject=${encodeURIComponent('Dekouvri STOA')}&body=${encodedText}%20${encodedUrl}`;
+
+    const nativeBtn = document.getElementById('nativeShareBtn');
+    if(navigator.share){
+      nativeBtn.style.display = 'block';
+      nativeBtn.onclick = ()=>{
+        navigator.share({ title: 'STOA', text: shareText, url }).catch(()=>{});
+      };
+    } else {
+      nativeBtn.style.display = 'none';
+    }
+
     if(!qrRendered && typeof QRCode !== 'undefined'){
       new QRCode(document.getElementById('qrcode-canvas'), {
         text: url, width: 160, height: 160,
@@ -1355,6 +1608,8 @@
     isAdmin = active;
     adminFab.classList.toggle('active', active);
     adminFab.textContent = active ? '🔓 Admin ✓' : '🔒 Admin';
+    // Kache bouton Admin nèt yon fwa moun nan konekte kòm admin
+    adminFab.style.display = active ? 'none' : (isRegistered ? 'none' : 'block');
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = active ? 'block' : 'none');
     document.getElementById('adminBannerMusic').classList.toggle('show', active);
     document.getElementById('statsLocked').style.display = active ? 'none' : 'block';
@@ -1365,6 +1620,22 @@
     renderVideos(currentVideoFilter);
     renderWisdom(currentWisdomFilter);
   }
+
+  // Kache bouton Admin la pou moun ki deja enskri kòm abòne regilye (pa admin)
+  if(localStorage.getItem('stoa_registered') === '1' && !isAdmin){
+    adminFab.style.display = 'none';
+  }
+  // Sekrè: klike 5 fwa sou mak STOA a pou fè bouton Admin la reparèt (si l kache pa erè)
+  let logoClickCount = 0, logoClickTimer = null;
+  document.querySelector('.mark').addEventListener('click', ()=>{
+    logoClickCount++;
+    clearTimeout(logoClickTimer);
+    logoClickTimer = setTimeout(()=> logoClickCount = 0, 1500);
+    if(logoClickCount >= 5){
+      adminFab.style.display = 'block';
+      logoClickCount = 0;
+    }
+  });
 
   adminFab.addEventListener('click', ()=>{
     if(isAdmin){
@@ -1397,7 +1668,7 @@
     const statusText = document.getElementById('trackUploadStatus');
 
     function finishSave(fileUrl){
-      const data = {title, sub: dur + ' · MP3', price};
+      const data = {title, sub: dur + ' · MP3', price, createdAt: Date.now()};
       const isBase64 = fileUrl && fileUrl.startsWith('data:');
       if(fileUrl && !isBase64) data.previewUrl = fileUrl;
       if(isBase64) data.hasMedia = true;
@@ -1471,7 +1742,7 @@
     const statusText = document.getElementById('photoUploadStatus');
 
     function finishSave(finalUrl, finalIsVideo){
-      galleryRef.push({label, price, customUrl: finalUrl, isVideo: finalIsVideo})
+      galleryRef.push({label, price, customUrl: finalUrl, isVideo: finalIsVideo, createdAt: Date.now()})
         .then(() => {
           document.getElementById('newPhotoLabel').value='';
           document.getElementById('newPhotoUrl').value='';
@@ -1525,7 +1796,7 @@
     const text = document.getElementById('newWisdomText').value.trim();
     const author = document.getElementById('newWisdomAuthor').value.trim() || 'Enkoni';
     if(!text){ alert('Ekri tèks sitasyon an.'); return; }
-    wisdomRef.push({text, author});
+    wisdomRef.push({text, author, createdAt: Date.now()});
     document.getElementById('newWisdomText').value='';
     document.getElementById('newWisdomAuthor').value='';
     document.getElementById('addWisdomForm').classList.remove('open');
@@ -1605,7 +1876,16 @@
   document.getElementById('closePaymentModal').addEventListener('click', ()=> paymentModal.classList.remove('open'));
   paymentModal.addEventListener('click', (e)=>{ if(e.target === paymentModal) paymentModal.classList.remove('open'); });
 
-  function showPaymentModal(itemTitle, price){
+  let pendingPurchase = null;
+  document.getElementById('confirmPaidBtn').addEventListener('click', ()=>{
+    if(!pendingPurchase) return;
+    confirmPurchase(pendingPurchase.type, pendingPurchase.id);
+    paymentModal.classList.remove('open');
+    alert('Mèsi! Aksè ou debloke pou 2 jou.');
+  });
+
+  function showPaymentModal(itemTitle, price, itemType, itemId){
+    pendingPurchase = (itemType && itemId) ? {type: itemType, id: itemId} : null;
     document.getElementById('paymentModalTitle').textContent = `Peye $${price} — ${itemTitle}`;
     document.getElementById('payMoncashNumber').textContent = paymentInfo.moncash || '—';
     document.getElementById('payNatcashNumber').textContent = paymentInfo.natcash || '—';
@@ -1627,7 +1907,7 @@
   const subscribersRef = db.ref('subscribers');
 
   function requireRegistration(actionLabel){
-    if(isRegistered) return true;
+    if(isRegistered || isAdmin) return true;
     alert('Ou dwe enskri anvan (gratis) pou ' + actionLabel + '. Ranpli non ak imèl ou anba a — sa ap pran 10 segond.');
     document.getElementById('registerBanner').scrollIntoView({behavior:'smooth', block:'center'});
     document.getElementById('regName').focus();
@@ -1640,9 +1920,92 @@
     if(!name || !email){ alert('Mete non ou ak imèl ou.'); return; }
     subscribersRef.push({ name, email, date: new Date().toISOString() });
     isRegistered = true;
+    localStorage.setItem('stoa_registered', '1');
+    localStorage.setItem('stoa_name', name);
     document.getElementById('registerForm').classList.add('hide');
     document.getElementById('registerDone').classList.add('show');
+    document.getElementById('notifBellWrap').style.display = 'block';
+    document.getElementById('chatInput').placeholder = 'Ekri yon mesaj...';
+    if(!isAdmin) document.getElementById('adminFab').style.display = 'none';
   });
+
+  // Returning registered visitor: restore state without asking again
+  if(localStorage.getItem('stoa_registered') === '1'){
+    isRegistered = true;
+    document.getElementById('registerForm').classList.add('hide');
+    document.getElementById('registerDone').classList.add('show');
+    document.getElementById('notifBellWrap').style.display = 'block';
+  }
+
+  // ---- Notifications: alert registered users about new tracks/photos/wisdom ----
+  const notifBell = document.getElementById('notifBell');
+  const notifDropdown = document.getElementById('notifDropdown');
+  const notifBadge = document.getElementById('notifBadge');
+  const notifList = document.getElementById('notifList');
+
+  function getLastSeen(){ return parseInt(localStorage.getItem('stoa_lastSeen') || '0', 10); }
+
+  function refreshNotifications(){
+    if(!isRegistered) return;
+    const lastSeen = getLastSeen();
+    const items = [];
+    tracks.forEach(t => { if(t.createdAt > lastSeen) items.push({label: '🎵 ' + t.title, ts: t.createdAt}); });
+    galleryItems.forEach(g => { if(g.createdAt > lastSeen) items.push({label: (g.isVideo ? '🎬 ' : '🖼️ ') + g.label, ts: g.createdAt}); });
+    wisdom.forEach(w => { if(w.createdAt > lastSeen) items.push({label: '💬 ' + w.text.slice(0,40) + (w.text.length>40?'...':''), ts: w.createdAt}); });
+    items.sort((a,b)=> b.ts - a.ts);
+    notifBadge.style.display = items.length ? 'inline' : 'none';
+    notifBadge.textContent = items.length;
+    notifList.innerHTML = items.length
+      ? items.map(i => `<div class="notif-item">${i.label}</div>`).join('')
+      : `<div class="notif-empty">Pa gen anyen nouvo pou kounye a.</div>`;
+  }
+
+  notifBell.addEventListener('click', ()=> notifDropdown.classList.toggle('open'));
+  document.addEventListener('click', (e)=>{
+    if(!e.target.closest('#notifBellWrap')) notifDropdown.classList.remove('open');
+  });
+  document.getElementById('notifMarkRead').addEventListener('click', ()=>{
+    localStorage.setItem('stoa_lastSeen', Date.now().toString());
+    refreshNotifications();
+    notifDropdown.classList.remove('open');
+  });
+
+  // ---- Chat (shared, real-time, saved to Firebase) ----
+  const chatRef = db.ref('chat');
+  const chatBox = document.getElementById('chatBox');
+  const chatInput = document.getElementById('chatInput');
+
+  chatRef.limitToLast(100).on('value', (snap) => {
+    const data = snap.val() || {};
+    const messages = Object.keys(data).map(key => ({ id: key, ...data[key] })).sort((a,b)=> a.ts - b.ts);
+    if(!messages.length){
+      chatBox.innerHTML = '<div class="chat-empty">Pa gen mesaj ankò. Se ou ki pou kòmanse!</div>';
+      return;
+    }
+    chatBox.innerHTML = messages.map(m => {
+      const time = m.ts ? new Date(m.ts).toLocaleString('fr-FR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '';
+      const delBtn = isAdmin ? `<span class="chat-del" data-del-chat="${m.id}">Efase</span>` : '';
+      return `<div class="chat-msg"><span class="chat-name">${m.name}</span><span class="chat-time">${time}</span>${delBtn}<div class="chat-text">${m.text}</div></div>`;
+    }).join('');
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+
+  chatBox.addEventListener('click', (e)=>{
+    if(e.target.dataset.delChat){
+      if(confirm('Efase mesaj sa a?')) chatRef.child(e.target.dataset.delChat).remove();
+    }
+  });
+
+  function sendChatMessage(){
+    if(!requireRegistration('ekri nan chat la')) return;
+    const text = chatInput.value.trim();
+    if(!text) return;
+    const name = localStorage.getItem('stoa_name') || 'Envite';
+    chatRef.push({ name, text, ts: Date.now() });
+    chatInput.value = '';
+  }
+  document.getElementById('chatSend').addEventListener('click', sendChatMessage);
+  chatInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') sendChatMessage(); });
 
   // ---- Track visits (increments once per page load) ----
   db.ref('stats/visits').transaction((current) => (current || 0) + 1);
@@ -1673,6 +2036,55 @@
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
     });
   }
+
+  // ---- Install app banner (Android/Chrome real install prompt + iOS instructions) ----
+  const installBanner = document.getElementById('installBanner');
+  const installBtn = document.getElementById('installBtn');
+  const installDismiss = document.getElementById('installDismiss');
+  const installSubtext = document.getElementById('installSubtext');
+  let deferredInstallPrompt = null;
+
+  function isStandalone(){
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const dismissedBefore = localStorage.getItem('stoa_install_dismissed') === '1';
+
+  if(!isStandalone() && !dismissedBefore){
+    if(isIOS){
+      // iOS Safari doesn't support beforeinstallprompt — show manual instructions instead
+      installSubtext.textContent = "Klike sou bouton Pataje ⬆️ nan Safari, epi chwazi 'Ajoute sou ekran akèy'.";
+      installBtn.textContent = 'Wè kijan';
+      installBtn.addEventListener('click', ()=>{
+        alert("Pou enstale STOA sou iPhone ou:\n\n1. Klike sou bouton Pataje (⬆️) anba nan Safari\n2. Fè desann epi chwazi 'Ajoute sou ekran akèy'\n3. Klike 'Ajoute' anwo dwat la\n\nApre sa, STOA ap parèt tankou yon app sou telefòn ou.");
+      });
+      installBanner.style.display = 'flex';
+    } else {
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        installBanner.style.display = 'flex';
+      });
+      installBtn.addEventListener('click', async ()=>{
+        if(!deferredInstallPrompt) return;
+        deferredInstallPrompt.prompt();
+        const choice = await deferredInstallPrompt.userChoice;
+        if(choice.outcome === 'accepted'){
+          installBanner.style.display = 'none';
+        }
+        deferredInstallPrompt = null;
+      });
+    }
+  }
+
+  installDismiss.addEventListener('click', ()=>{
+    installBanner.style.display = 'none';
+    localStorage.setItem('stoa_install_dismissed', '1');
+  });
+
+  window.addEventListener('appinstalled', ()=>{
+    installBanner.style.display = 'none';
+  });
 </script>
 
 </body>
