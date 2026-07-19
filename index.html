@@ -21,7 +21,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
   :root{
     --stone-dark: #1c1b19;
@@ -50,19 +49,10 @@
     padding: 56px 20px 40px;
     text-align:center;
     border-bottom: 1px solid var(--stone-line);
-    overflow: hidden;
-  }
-  .hero-bg-layer{
-    position:absolute; inset:0; z-index:0;
     background-image: linear-gradient(rgba(20,19,17,0.55), rgba(20,19,17,0.75)), url('bg-hero.jpg');
     background-size: cover;
     background-position: center;
-    transition: opacity 1.5s ease-in-out;
-    opacity: 0;
   }
-  header.hero > *:not(.hero-bg-layer){ position:relative; z-index:1; }
-  header.hero > .notif-bell-wrap{ position:absolute; }
-  #heroBgA{ opacity:1; }
   .mark{
     display:flex; flex-direction:column; align-items:center; gap:10px;
     font-family:'Cormorant Garamond', serif;
@@ -345,26 +335,6 @@
     font-size:16px; cursor:pointer; padding:4px 8px;
   }
 
-  /* LIBRARY */
-  .library-grid{
-    display:grid; grid-template-columns: repeat(2, 1fr); gap:16px; margin-top:14px;
-  }
-  .book-card{
-    background: var(--stone-mid); border:1px solid var(--stone-line); border-radius:8px;
-    overflow:hidden; display:flex; flex-direction:column;
-  }
-  .book-cover{ width:100%; aspect-ratio:2/3; object-fit:cover; background: var(--stone-dark); }
-  .book-info{ padding:10px; display:flex; flex-direction:column; gap:6px; flex:1; }
-  .book-title{ font-size:13px; font-weight:600; color: var(--parchment); line-height:1.3; }
-  .book-author{ font-size:11px; color: var(--parchment-dim); }
-  .book-actions{ margin-top:auto; display:flex; flex-direction:column; gap:6px; }
-  .book-dl{
-    background: var(--stone-dark); border:1px solid var(--stone-line); color: var(--parchment);
-    font-size:12px; padding:8px; border-radius:4px; cursor:pointer; text-align:center; text-decoration:none;
-  }
-  .book-dl.paid{ background: var(--bronze); color: var(--stone-dark); border-color: var(--bronze); font-weight:600; }
-  .book-remove{ font-size:11px; color:#c0392b; cursor:pointer; text-align:center; }
-
   /* SHARE FAB + MODAL */
   .share-fab{
     position: fixed; bottom: 22px; right: 22px;
@@ -589,8 +559,6 @@
 <body>
 
 <header class="hero">
-  <div class="hero-bg-layer" id="heroBgA"></div>
-  <div class="hero-bg-layer" id="heroBgB"></div>
   <div class="mark">
     <svg class="logo-svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="6" y="10" width="52" height="5" fill="#d4a765"/>
@@ -622,7 +590,6 @@
   <button data-panel="gallery">Imaj</button>
   <button data-panel="videos">Videyo</button>
   <button data-panel="wisdom">Sajès</button>
-  <button data-panel="library">Bibliyotèk</button>
   <button data-panel="chat">Chat</button>
   <button data-panel="about">Sou Mwen</button>
   <button data-panel="stats">Estatistik</button>
@@ -732,69 +699,6 @@
     <div id="wisdomList"></div>
     <div class="no-results" id="noWisdomResults" style="display:none">Pa gen sitasyon ki koresponn.</div>
   </section>
-
-  <section class="panel" id="library">
-    <div class="section-title">Bibliyotèk</div>
-    <div class="admin-banner" id="adminBannerLibrary">🔓 Mòd Admin aktive — ou ka ajoute liv</div>
-    <button class="add-btn admin-only" id="showAddBook" style="display:none">+ Ajoute yon liv</button>
-    <button class="add-btn admin-only" id="showAddAmbiance" style="display:none">+ Ajoute yon son anbyans (max 10)</button>
-    <div class="add-form" id="addAmbianceForm">
-      <input type="text" id="newAmbianceTitle" placeholder="Non son an (egzanp: Anbyans Rasin 1)">
-      <input type="file" id="newAmbianceFile" accept="audio/*">
-      <div class="upload-progress" id="ambianceUploadProgress"><div class="upload-progress-bar" id="ambianceUploadBar"></div></div>
-      <div class="upload-status" id="ambianceUploadStatus"></div>
-      <input type="text" id="newAmbianceUrl" placeholder="OSWA kole yon lyen dirèk pou son an">
-      <div class="add-form-actions">
-        <button class="add-cancel" id="cancelAddAmbiance">Anile</button>
-        <button class="add-save" id="saveAddAmbiance">Anrejistre</button>
-      </div>
-    </div>
-    <div class="add-form" id="addBookForm">
-      <input type="text" id="newBookTitle" placeholder="Tit liv la">
-      <input type="text" id="newBookAuthor" placeholder="Otè a">
-      <input type="number" id="newBookPrice" placeholder="Pri an dola (0 = gratis)" min="0">
-      <label style="font-size:12px;color:var(--parchment-dim);display:block;margin-bottom:6px;">Chwazi fichye liv la (PDF, maksimòm 6 Mo):</label>
-      <input type="file" id="newBookFile" accept="application/pdf">
-      <div class="upload-progress" id="bookUploadProgress"><div class="upload-progress-bar" id="bookUploadBar"></div></div>
-      <div class="upload-status" id="bookUploadStatus"></div>
-      <input type="text" id="newBookUrl" placeholder="OSWA kole yon lyen Google Drive pou liv la (si w pa telechaje fichye)">
-      <input type="text" id="newBookCoverUrl" placeholder="Lyen foto kouvèti a (opsyonèl)">
-      <div class="add-form-actions">
-        <button class="add-cancel" id="cancelAddBook">Anile</button>
-        <button class="add-save" id="saveAddBook">Anrejistre</button>
-      </div>
-    </div>
-    <div class="search-bar"><span class="search-icon">⌕</span><input type="text" id="searchLibrary" placeholder="Chèche yon liv..."></div>
-    <div class="library-grid" id="libraryGrid"></div>
-    <div class="no-results" id="noLibraryResults" style="display:none">Pa gen liv ki koresponn.</div>
-  </section>
-
-  <div class="modal-overlay" id="adminLoginModal">
-    <div class="modal-box">
-      <button class="modal-close" id="closeAdminLoginModal">✕</button>
-      <h3>🔒 Koneksyon Admin</h3>
-      <div class="register-form" style="margin-top:14px;">
-        <input type="email" id="adminEmail" placeholder="Imèl admin">
-        <input type="password" id="adminPassword" placeholder="Modpas">
-        <button id="adminLoginSubmit">Konekte</button>
-      </div>
-      <div id="adminLoginError" style="color:#c0392b;font-size:12px;margin-top:8px;"></div>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="ambianceModal">
-    <div class="modal-box">
-      <button class="modal-close" id="closeAmbianceModal">✕</button>
-      <h3>🎵 Anbyans Bibliyotèk la</h3>
-      <p style="font-size:13px;color:var(--parchment-dim);line-height:1.6;margin-bottom:16px;">
-        Ou vle koute yon ti anbyans mizik lib ayisyen pandan w ap dekouvri liv yo?
-      </p>
-      <div class="add-form-actions" style="justify-content:center;gap:12px;">
-        <button class="add-cancel" id="ambianceNo">Non, mèsi</button>
-        <button class="add-save" id="ambianceYes">Wi, jwe l</button>
-      </div>
-    </div>
-  </div>
 
   <section class="panel" id="chat">
     <div class="section-title">Chat ak Kominote a</div>
@@ -937,39 +841,8 @@
       panels.forEach(p=>p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById(btn.dataset.panel).classList.add('active');
-      if(typeof handleLibraryNav === 'function') handleLibraryNav(btn.dataset.panel);
     });
   });
-
-  // ---- Hero rotating background photos (wise stoic figures), synced with quotes ----
-  const heroBgImages = [
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Marcus_Aurelius_statue.01.JPG",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Equestrian_statue_of_Marcus_Aurelius_(Rome)_01.jpg",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Seneca.JPG",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Bust_of_Seneca_in_the_Summer_Garden.jpg",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Epictetus2.png",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Epictetus.jpg"
-  ];
-  const heroBgA = document.getElementById('heroBgA');
-  const heroBgB = document.getElementById('heroBgB');
-  let bgToggle = true;
-  function setBgLayer(layer, url){
-    layer.style.backgroundImage = `linear-gradient(rgba(20,19,17,0.55), rgba(20,19,17,0.75)), url('${url}')`;
-  }
-  setBgLayer(heroBgA, heroBgImages[0]);
-  function showBg(i){
-    const url = heroBgImages[i % heroBgImages.length];
-    if(bgToggle){
-      setBgLayer(heroBgB, url);
-      heroBgB.style.opacity = 1;
-      heroBgA.style.opacity = 0;
-    } else {
-      setBgLayer(heroBgA, url);
-      heroBgA.style.opacity = 1;
-      heroBgB.style.opacity = 0;
-    }
-    bgToggle = !bgToggle;
-  }
 
   // ---- Hero rotating stoic quotes ----
   const heroQuotes = [
@@ -990,11 +863,7 @@
     }, 250);
   }
   showQuote(0);
-  let bgIndex = 0;
-  setInterval(()=>{
-    qi = (qi+1)%heroQuotes.length; showQuote(qi);
-    bgIndex = (bgIndex+1)%heroBgImages.length; showBg(bgIndex);
-  }, 5000);
+  setInterval(()=>{ qi = (qi+1)%heroQuotes.length; showQuote(qi); }, 5000);
 
   // ---- Firebase setup ----
   const firebaseConfig = {
@@ -1028,7 +897,6 @@
     purchasesCache = snap.val() || {};
     if(typeof renderTracks === 'function') renderTracks(currentMusicFilter);
     if(typeof renderGallery === 'function') renderGallery(currentGalleryFilter);
-    if(typeof renderLibrary === 'function') renderLibrary(currentLibraryFilter);
   });
   function purchaseKey(type, id){ return type + '_' + id; }
   function isPurchaseActive(type, id){
@@ -1044,7 +912,6 @@
   setInterval(()=>{
     if(typeof renderTracks === 'function') renderTracks(currentMusicFilter);
     if(typeof renderGallery === 'function') renderGallery(currentGalleryFilter);
-    if(typeof renderLibrary === 'function') renderLibrary(currentLibraryFilter);
   }, 5 * 60 * 1000);
 
   // ---- Reactions (like/dislike) shared across everyone, one vote per device ----
@@ -1152,7 +1019,7 @@
   }
 
   // ---- Admin mode (declared early: used by render functions below) ----
-
+  const ADMIN_PASSWORD = "Jovin2000";
   let isAdmin = false;
   let isRegistered = false;
   const previewAudio = document.getElementById('previewAudio');
@@ -1745,7 +1612,6 @@
     adminFab.style.display = active ? 'none' : (isRegistered ? 'none' : 'block');
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = active ? 'block' : 'none');
     document.getElementById('adminBannerMusic').classList.toggle('show', active);
-    document.getElementById('adminBannerLibrary').classList.toggle('show', active);
     document.getElementById('statsLocked').style.display = active ? 'none' : 'block';
     document.getElementById('statsContent').style.display = active ? 'block' : 'none';
     if(active) loadStats();
@@ -1753,7 +1619,6 @@
     renderGallery(currentGalleryFilter);
     renderVideos(currentVideoFilter);
     renderWisdom(currentWisdomFilter);
-    if(typeof renderLibrary === 'function') renderLibrary(currentLibraryFilter);
   }
 
   // Kache bouton Admin la pou moun ki deja enskri kòm abòne regilye (pa admin)
@@ -1772,39 +1637,17 @@
     }
   });
 
-  const adminLoginModal = document.getElementById('adminLoginModal');
-  document.getElementById('closeAdminLoginModal').addEventListener('click', ()=> adminLoginModal.classList.remove('open'));
-  adminLoginModal.addEventListener('click', (e)=>{ if(e.target === adminLoginModal) adminLoginModal.classList.remove('open'); });
-
-  document.getElementById('adminLoginSubmit').addEventListener('click', ()=>{
-    const email = document.getElementById('adminEmail').value.trim();
-    const password = document.getElementById('adminPassword').value;
-    const errBox = document.getElementById('adminLoginError');
-    errBox.textContent = '';
-    if(!email || !password){ errBox.textContent = 'Mete imèl ak modpas ou.'; return; }
-    firebase.auth().signInWithEmailAndPassword(email, password)
-      .then(() => {
-        adminLoginModal.classList.remove('open');
-        document.getElementById('adminEmail').value = '';
-        document.getElementById('adminPassword').value = '';
-      })
-      .catch((err) => {
-        errBox.textContent = 'Imèl oswa modpas pa kòrèk.';
-      });
-  });
-
-  // Firebase Authentication tracks admin login state automatically (safe, real security)
-  firebase.auth().onAuthStateChanged((user) => {
-    setAdminUI(!!user);
-  });
-
   adminFab.addEventListener('click', ()=>{
     if(isAdmin){
-      firebase.auth().signOut();
+      setAdminUI(false);
       return;
     }
-    adminLoginModal.classList.add('open');
-    document.getElementById('adminEmail').focus();
+    const pass = prompt('Antre kòd Admin la:');
+    if(pass === ADMIN_PASSWORD){
+      setAdminUI(true);
+    } else if(pass !== null){
+      alert('Kòd la pa kòrèk.');
+    }
   });
 
   // ---- Add track form toggle ----
@@ -1877,162 +1720,6 @@
       );
     } else {
       finishSave(urlInput || null);
-    }
-  });
-
-  // ---- Add book form toggle ----
-  document.getElementById('showAddBook').addEventListener('click', ()=> document.getElementById('addBookForm').classList.add('open'));
-  document.getElementById('cancelAddBook').addEventListener('click', ()=> document.getElementById('addBookForm').classList.remove('open'));
-  document.getElementById('saveAddBook').addEventListener('click', ()=>{
-    const title = document.getElementById('newBookTitle').value.trim();
-    const author = document.getElementById('newBookAuthor').value.trim() || 'Otè enkoni';
-    const price = parseFloat(document.getElementById('newBookPrice').value) || 0;
-    const fileInput = document.getElementById('newBookFile');
-    const file = fileInput.files[0];
-    const urlInput = convertToDirectLink(document.getElementById('newBookUrl').value.trim());
-    const coverUrl = document.getElementById('newBookCoverUrl').value.trim();
-    if(!title){ alert('Mete yon tit pou liv la.'); return; }
-
-    const saveBtn = document.getElementById('saveAddBook');
-    const progressWrap = document.getElementById('bookUploadProgress');
-    const progressBar = document.getElementById('bookUploadBar');
-    const statusText = document.getElementById('bookUploadStatus');
-
-    function finishSaveBook(fileUrl){
-      const data = {title, author, price, coverUrl: coverUrl || '', createdAt: Date.now()};
-      const isBase64 = fileUrl && fileUrl.startsWith('data:');
-      if(fileUrl && !isBase64) data.fileUrl = fileUrl;
-      if(isBase64) data.hasMedia = true;
-
-      if(isBase64){
-        progressBar.style.width = '100%';
-        statusText.textContent = 'Ap voye liv la sou sèvè a... pa fèmen paj la.';
-      }
-
-      const newRef = libraryRef.push();
-      newRef.set(data)
-        .then(() => {
-          if(isBase64){
-            statusText.textContent = 'Prèske fini...';
-            return db.ref('libraryMedia/' + newRef.key).set(fileUrl);
-          }
-        })
-        .then(() => {
-          document.getElementById('newBookTitle').value='';
-          document.getElementById('newBookAuthor').value='';
-          document.getElementById('newBookPrice').value='';
-          document.getElementById('newBookUrl').value='';
-          document.getElementById('newBookCoverUrl').value='';
-          fileInput.value='';
-          progressWrap.classList.remove('show');
-          statusText.textContent='';
-          saveBtn.disabled = false;
-          document.getElementById('addBookForm').classList.remove('open');
-        })
-        .catch((err) => {
-          alert('Erè: liv la pa t kapab anrejistre. ' + err.message);
-          saveBtn.disabled = false;
-          progressWrap.classList.remove('show');
-        });
-    }
-
-    if(file){
-      const maxSizeMB = 6;
-      if(file.size > maxSizeMB * 1024 * 1024){
-        alert(`Fichye a twò gwo (${(file.size/1024/1024).toFixed(1)} Mo). Limit la se ${maxSizeMB} Mo. Itilize yon lyen pito.`);
-        return;
-      }
-      saveBtn.disabled = true;
-      progressWrap.classList.add('show');
-      statusText.textContent = 'Ap trete fichye a: 0%';
-      fileToBase64(file,
-        (pct) => { progressBar.style.width = pct + '%'; statusText.textContent = 'Ap trete fichye a: ' + pct + '%'; },
-        (dataUrl) => finishSaveBook(dataUrl),
-        (err) => { alert('Erè: ' + err.message); saveBtn.disabled = false; progressWrap.classList.remove('show'); }
-      );
-    } else {
-      if(!urlInput){ alert('Chwazi yon fichye PDF OSWA kole yon lyen.'); return; }
-      finishSaveBook(urlInput);
-    }
-  });
-
-  // ---- Library data + render ----
-  const libraryRef = db.ref('library');
-  const libraryGrid = document.getElementById('libraryGrid');
-  const noLibraryResults = document.getElementById('noLibraryResults');
-  let libraryBooks = [];
-  let currentLibraryFilter = '';
-
-  function renderLibrary(filter=''){
-    libraryGrid.innerHTML = '';
-    const f = filter.toLowerCase();
-    const filtered = libraryBooks.filter(b => b.title.toLowerCase().includes(f) || b.author.toLowerCase().includes(f));
-    noLibraryResults.style.display = filtered.length ? 'none' : 'block';
-    filtered.forEach(b => {
-      const isFree = b.price === 0;
-      const unlocked = isFree || isPurchaseActive('book', b.id);
-      const cover = b.coverUrl || `https://picsum.photos/seed/book${b.id}/300/450`;
-      const dlBtn = unlocked
-        ? `<a class="book-dl" data-book-dl="${b.id}">📖 Li / Telechaje</a>`
-        : `<a class="book-dl paid" data-book-buy="${b.id}" data-price="${b.price}" data-title="${b.title}">Achte $${b.price}</a>`;
-      const removeBtn = isAdmin ? `<div class="book-remove" data-remove-book="${b.id}">Efase</div>` : '';
-      const div = document.createElement('div');
-      div.className = 'book-card';
-      div.innerHTML = `
-        <img class="book-cover" src="${cover}" alt="${b.title}" loading="lazy">
-        <div class="book-info">
-          <div class="book-title">${b.title}</div>
-          <div class="book-author">${b.author}</div>
-          ${reactionHTML('book', b.id, b.likes, b.dislikes)}
-          <div class="book-actions">${dlBtn}${removeBtn}</div>
-        </div>`;
-      libraryGrid.appendChild(div);
-    });
-  }
-
-  libraryRef.on('value', (snapshot) => {
-    const data = snapshot.val() || {};
-    libraryBooks = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    renderLibrary(currentLibraryFilter);
-    if(typeof refreshNotifications === 'function') refreshNotifications();
-  });
-
-  document.getElementById('searchLibrary').addEventListener('input', (e)=>{
-    currentLibraryFilter = e.target.value;
-    renderLibrary(currentLibraryFilter);
-  });
-
-  libraryGrid.addEventListener('click', (e)=>{
-    if(e.target.dataset.removeBook){
-      if(confirm('Efase liv sa a pou tout moun?')) libraryRef.child(e.target.dataset.removeBook).remove();
-      return;
-    }
-    if(e.target.dataset.react){
-      if(!requireRegistration('reyaji sou yon liv')) return;
-      handleReactionClick(libraryRef, e.target.dataset.reactType, e.target.dataset.reactId, e.target.dataset.react);
-      return;
-    }
-    if(e.target.dataset.bookBuy){
-      if(!requireRegistration('achte liv sa a')) return;
-      showPaymentModal(e.target.dataset.title, e.target.dataset.price, 'book', e.target.dataset.bookBuy);
-      return;
-    }
-    if(e.target.dataset.bookDl){
-      if(!requireRegistration('li oswa telechaje liv sa a')) return;
-      const book = libraryBooks.find(b => b.id === e.target.dataset.bookDl);
-      if(book && book.fileUrl){
-        window.open(book.fileUrl, '_blank');
-      } else if(book && book.hasMedia){
-        db.ref('libraryMedia/' + book.id).once('value', (snap) => {
-          const dataUrl = snap.val();
-          if(dataUrl){
-            const w = window.open();
-            w.document.write(`<iframe src="${dataUrl}" style="width:100%;height:100%;border:none;"></iframe>`);
-          }
-        });
-      } else {
-        alert('Liv sa a poko gen fichye disponib.');
-      }
     }
   });
 
@@ -2284,125 +1971,6 @@
   });
 
   // ---- Chat (shared, real-time, saved to Firebase) ----
-  // ---- Library ambiance sound (up to 10 tracks, loop continuously while in library) ----
-  document.getElementById('showAddAmbiance').addEventListener('click', ()=> document.getElementById('addAmbianceForm').classList.add('open'));
-  document.getElementById('cancelAddAmbiance').addEventListener('click', ()=> document.getElementById('addAmbianceForm').classList.remove('open'));
-  document.getElementById('saveAddAmbiance').addEventListener('click', ()=>{
-    const title = document.getElementById('newAmbianceTitle').value.trim();
-    const fileInput = document.getElementById('newAmbianceFile');
-    const file = fileInput.files[0];
-    const urlInput = document.getElementById('newAmbianceUrl').value.trim();
-    if(!title){ alert('Mete yon non pou son anbyans lan.'); return; }
-    if(ambianceTracks.length >= 10){ alert('Ou deja gen 10 son anbyans. Efase youn anvan w ajoute yon lòt.'); return; }
-
-    const saveBtn = document.getElementById('saveAddAmbiance');
-    const progressWrap = document.getElementById('ambianceUploadProgress');
-    const progressBar = document.getElementById('ambianceUploadBar');
-    const statusText = document.getElementById('ambianceUploadStatus');
-
-    function finishSaveAmbiance(fileUrl){
-      const data = {title, createdAt: Date.now()};
-      const isBase64 = fileUrl && fileUrl.startsWith('data:');
-      if(fileUrl && !isBase64) data.fileUrl = fileUrl;
-      if(isBase64) data.hasMedia = true;
-      const newRef = ambianceRef.push();
-      newRef.set(data)
-        .then(() => isBase64 ? db.ref('ambianceMedia/' + newRef.key).set(fileUrl) : null)
-        .then(() => {
-          document.getElementById('newAmbianceTitle').value='';
-          document.getElementById('newAmbianceUrl').value='';
-          fileInput.value='';
-          progressWrap.classList.remove('show');
-          statusText.textContent='';
-          saveBtn.disabled = false;
-          document.getElementById('addAmbianceForm').classList.remove('open');
-        })
-        .catch((err)=>{ alert('Erè: ' + err.message); saveBtn.disabled = false; progressWrap.classList.remove('show'); });
-    }
-
-    if(file){
-      const maxSizeMB = 6;
-      if(file.size > maxSizeMB * 1024 * 1024){
-        alert(`Fichye a twò gwo (${(file.size/1024/1024).toFixed(1)} Mo). Limit la se ${maxSizeMB} Mo.`);
-        return;
-      }
-      saveBtn.disabled = true;
-      progressWrap.classList.add('show');
-      statusText.textContent = 'Ap trete fichye a: 0%';
-      fileToBase64(file,
-        (pct) => { progressBar.style.width = pct + '%'; statusText.textContent = 'Ap trete fichye a: ' + pct + '%'; },
-        (dataUrl) => finishSaveAmbiance(dataUrl),
-        (err) => { alert('Erè: ' + err.message); saveBtn.disabled = false; progressWrap.classList.remove('show'); }
-      );
-    } else {
-      if(!urlInput){ alert('Chwazi yon fichye OSWA kole yon lyen.'); return; }
-      finishSaveAmbiance(urlInput);
-    }
-  });
-
-  const ambianceRef = db.ref('ambiance');
-  let ambianceTracks = [];
-  ambianceRef.on('value', (snap) => {
-    const data = snap.val() || {};
-    ambianceTracks = Object.keys(data).map(key => ({ id: key, ...data[key] })).slice(0, 10);
-  });
-
-  const ambianceModal = document.getElementById('ambianceModal');
-  const ambianceAudio = new Audio();
-  ambianceAudio.preload = 'none';
-  let ambianceIdx = 0;
-  let ambianceAsked = false;
-
-  function getAmbianceUrl(track, cb){
-    if(track.fileUrl){ cb(track.fileUrl); return; }
-    if(track.hasMedia){
-      db.ref('ambianceMedia/' + track.id).once('value', (s)=> cb(s.val()));
-      return;
-    }
-    cb(null);
-  }
-
-  function playAmbianceAt(i){
-    if(!ambianceTracks.length) return;
-    ambianceIdx = i % ambianceTracks.length;
-    getAmbianceUrl(ambianceTracks[ambianceIdx], (url)=>{
-      if(!url){ playAmbianceAt(ambianceIdx + 1); return; }
-      ambianceAudio.src = url;
-      ambianceAudio.play().catch(()=>{});
-    });
-  }
-  ambianceAudio.addEventListener('ended', ()=>{
-    playAmbianceAt(ambianceIdx + 1); // pase san kanpe nan pwochen son an, san rete
-  });
-
-  function stopAmbiance(){
-    ambianceAudio.pause();
-    ambianceAudio.src = '';
-  }
-
-  document.getElementById('ambianceYes').addEventListener('click', ()=>{
-    ambianceModal.classList.remove('open');
-    if(ambianceTracks.length){
-      playAmbianceAt(0);
-    } else {
-      alert('Pa gen anbyans son ki ajoute ankò. Admin ka ajoute yo nan Firebase (nou "ambiance").');
-    }
-  });
-  document.getElementById('ambianceNo').addEventListener('click', ()=>{
-    ambianceModal.classList.remove('open');
-  });
-  document.getElementById('closeAmbianceModal').addEventListener('click', ()=>{
-    ambianceModal.classList.remove('open');
-  });
-
-  function handleLibraryNav(panelName){
-    if(panelName === 'library'){
-      ambianceModal.classList.add('open');
-    } else {
-      stopAmbiance();
-    }
-  }
-
   const chatRef = db.ref('chat');
   const chatBox = document.getElementById('chatBox');
   const chatInput = document.getElementById('chatInput');
