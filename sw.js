@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stoa-cache-v3';
+const CACHE_NAME = 'stoa-cache-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -27,11 +27,20 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  if(event.request.method !== 'GET') return;
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
-        // Only cache same-origin GET requests
-        if (event.request.method === 'GET' && event.request.url.startsWith(self.location.origin)) {
+      // App shell + static assets: cache-first (fast, works offline)
+      if(cached) return cached;
+      return fetch(event.request).then((response) => {
+        // Cache same-origin files AND known static libraries (fonts, Firebase SDK)
+        // so the app keeps working with a weak/no connection after first visit.
+        const url = event.request.url;
+        const isCacheable = url.startsWith(self.location.origin)
+          || url.includes('gstatic.com')
+          || url.includes('fonts.googleapis.com')
+          || url.includes('cdnjs.cloudflare.com');
+        if(isCacheable && response && response.status === 200){
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }

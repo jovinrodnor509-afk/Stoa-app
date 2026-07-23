@@ -19,6 +19,17 @@
 <link rel="dns-prefetch" href="https://stoa-1b15e-default-rtdb.firebaseio.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "332143af-0e0c-4979-b52c-7f0bda021938",
+      notifyButton: { enable: false },
+      allowLocalhostAsSecureOrigin: true,
+    });
+  });
+</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -27,8 +38,8 @@
     --stone-dark: #1c1b19;
     --stone-mid: #2b2926;
     --stone-line: #3d3a35;
-    --parchment: #e9e2d3;
-    --parchment-dim: #a9a196;
+    --parchment: #f2ede1;
+    --parchment-dim: #c2b9ab;
     --bronze: #b0854f;
     --bronze-bright: #d4a765;
   }
@@ -61,7 +72,7 @@
     opacity: 0;
   }
   header.hero > *:not(.hero-bg-layer){ position:relative; z-index:1; }
-  header.hero > .notif-bell-wrap{ position:absolute; }
+  header.hero > .notif-bell-wrap, header.hero > .low-data-toggle{ position:absolute; }
   #heroBgA{ opacity:1; }
   .mark{
     display:flex; flex-direction:column; align-items:center; gap:10px;
@@ -345,6 +356,43 @@
     font-size:16px; cursor:pointer; padding:4px 8px;
   }
 
+  /* UPDATE TOAST + OFFLINE BANNER */
+  .update-toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background: var(--stone-mid); border:1px solid var(--bronze); color: var(--parchment);
+    padding:12px 18px; border-radius:8px; font-size:13px; z-index:200;
+    display:flex; align-items:center; gap:10px; box-shadow:0 4px 16px rgba(0,0,0,0.4);
+    max-width:90vw; text-align:center;
+  }
+  .update-toast button{
+    background: var(--bronze); color: var(--stone-dark); border:none;
+    padding:6px 12px; border-radius:4px; font-weight:700; font-size:12px; cursor:pointer; white-space:nowrap;
+  }
+  .offline-banner{
+    display:none; position:fixed; top:0; left:0; right:0; z-index:199;
+    background:#7a3b1e; color:#fce8d8; font-size:12px; text-align:center;
+    padding:8px 14px; line-height:1.4;
+  }
+  .offline-banner.show{ display:block; }
+
+  /* LOADING SKELETON — fè paj la parèt "monte" imedyatman pandan done yo ap chaje */
+  @keyframes shimmer{
+    0%{ background-position: -400px 0; }
+    100%{ background-position: 400px 0; }
+  }
+  .skeleton-row{
+    height:64px; border-radius:8px; margin-bottom:12px;
+    background: linear-gradient(90deg, var(--stone-mid) 25%, var(--stone-line) 50%, var(--stone-mid) 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s infinite linear;
+  }
+  .skeleton-tile{
+    aspect-ratio: 4/5; border-radius:8px;
+    background: linear-gradient(90deg, var(--stone-mid) 25%, var(--stone-line) 50%, var(--stone-mid) 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s infinite linear;
+  }
+
   /* LIBRARY */
   .library-grid{
     display:grid; grid-template-columns: repeat(2, 1fr); gap:16px; margin-top:14px;
@@ -384,6 +432,16 @@
     cursor:pointer; z-index: 50;
   }
   .admin-fab.active{ background: var(--bronze); color: var(--stone-dark); border-color: var(--bronze); }
+  .whatsapp-fab{
+    display:none; position: fixed; bottom: 84px; right: 22px;
+    background: #25D366; color: #fff;
+    width: 50px; height: 50px; border-radius: 50%;
+    align-items:center; justify-content:center;
+    font-size: 24px; text-decoration:none;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+    z-index: 55;
+  }
+  .whatsapp-fab.show{ display:flex; }
   .admin-banner{
     display:none;
     background: rgba(176,133,79,0.12); border: 1px solid var(--bronze);
@@ -511,6 +569,10 @@
     text-transform:uppercase; font-size:13px; cursor:pointer;
   }
   .register-done{ display:none; color: var(--bronze-bright); font-size:14px; font-style:italic; text-align:center; }
+  .whatsapp-contact-btn{
+    display:none; margin-top:14px; text-align:center; background:#25D366; color:#0b1f13;
+    font-weight:700; font-size:13px; padding:10px 16px; border-radius:6px; text-decoration:none;
+  }
   .register-done.show{ display:block; }
   .register-form.hide{ display:none; }
 
@@ -531,6 +593,13 @@
   .subscriber-row .sub-email{ color: var(--parchment-dim); font-size:12px; }
   /* NOTIFICATIONS */
   .notif-bell-wrap{ position:absolute; top:16px; right:16px; }
+  .low-data-toggle{
+    position:absolute; top:16px; left:16px; z-index:2;
+    background: rgba(0,0,0,0.3); border: 1px solid var(--stone-line);
+    color: var(--parchment-dim); font-size:16px; border-radius:20px;
+    padding:6px 10px; cursor:pointer;
+  }
+  .low-data-toggle.active{ border-color: var(--bronze-bright); color: var(--bronze-bright); background: rgba(176,133,79,0.2); }
   .notif-bell{
     background: rgba(0,0,0,0.3); border: 1px solid var(--stone-line);
     color: var(--parchment); font-size:16px; border-radius:20px;
@@ -615,6 +684,7 @@
       <button class="notif-mark-read" id="notifMarkRead">Make tou li</button>
     </div>
   </div>
+  <button class="low-data-toggle" id="lowDataToggle" title="Mòd Done Fèb">📶</button>
 </header>
 
 <nav>
@@ -644,10 +714,12 @@
   <p>Koute demo yo gratis san kondisyon. Men pou telechaje mizik, gade foto/videyo an gran fòma, ak jwenn tout sa STOA ofri — enskri (gratis, 10 segond).</p>
   <div class="register-form" id="registerForm">
     <input type="text" id="regName" placeholder="Non ou">
-    <input type="email" id="regEmail" placeholder="Imèl ou">
+    <input type="tel" id="regWhatsapp" placeholder="Nimewo WhatsApp ou (egzanp: 509 1234 5678)">
+    <input type="email" id="regEmail" placeholder="Imèl ou (opsyonèl)">
     <button id="regSubmit">Enskri</button>
   </div>
   <div class="register-done" id="registerDone">✓ Mèsi! Ou enskri — kounye a ou gen aksè total.</div>
+  <a class="whatsapp-contact-btn" id="whatsappContactBtn" target="_blank">💬 Kontakte nou sou WhatsApp</a>
 </div>
 
 <div class="wrap">
@@ -671,7 +743,7 @@
       </div>
     </div>
     <div class="search-bar"><span class="search-icon">⌕</span><input type="text" id="searchMusic" placeholder="Chèche yon chanson..."></div>
-    <div id="trackList"></div>
+    <div id="trackList"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
     <div class="no-results" id="noMusicResults" style="display:none">Pa gen chanson ki koresponn.</div>
     <div class="mini-player" id="miniPlayer">
       <div class="mini-player-title" id="miniPlayerTitle">—</div>
@@ -703,7 +775,7 @@
       </div>
     </div>
     <div class="search-bar"><span class="search-icon">⌕</span><input type="text" id="searchGallery" placeholder="Chèche yon foto..."></div>
-    <div class="gallery" id="galleryGrid"></div>
+    <div class="gallery" id="galleryGrid"><div class="skeleton-tile"></div><div class="skeleton-tile"></div><div class="skeleton-tile"></div><div class="skeleton-tile"></div></div>
     <div class="no-results" id="noGalleryResults" style="display:none">Pa gen foto ki koresponn.</div>
   </section>
 
@@ -729,7 +801,7 @@
       </div>
     </div>
     <div class="search-bar"><span class="search-icon">⌕</span><input type="text" id="searchWisdom" placeholder="Chèche yon sitasyon..."></div>
-    <div id="wisdomList"></div>
+    <div id="wisdomList"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
     <div class="no-results" id="noWisdomResults" style="display:none">Pa gen sitasyon ki koresponn.</div>
   </section>
 
@@ -765,7 +837,7 @@
       </div>
     </div>
     <div class="search-bar"><span class="search-icon">⌕</span><input type="text" id="searchLibrary" placeholder="Chèche yon liv..."></div>
-    <div class="library-grid" id="libraryGrid"></div>
+    <div class="library-grid" id="libraryGrid"><div class="skeleton-tile"></div><div class="skeleton-tile"></div><div class="skeleton-tile"></div><div class="skeleton-tile"></div></div>
     <div class="no-results" id="noLibraryResults" style="display:none">Pa gen liv ki koresponn.</div>
   </section>
 
@@ -881,6 +953,7 @@
 
 <button class="admin-fab" id="adminFab">🔒 Admin</button>
 <button class="share-fab" id="shareFab">Pataje</button>
+<a class="whatsapp-fab" id="whatsappFab" href="#" target="_blank" rel="noopener" aria-label="Kontakte nou sou WhatsApp">💬</a>
 
 <div class="modal-overlay" id="shareModal">
   <div class="modal-box">
@@ -991,8 +1064,24 @@
   }
   showQuote(0);
   let bgIndex = 0;
+  let lowDataMode = localStorage.getItem('stoa_low_data') === '1';
+  const lowDataToggle = document.getElementById('lowDataToggle');
+  function applyLowDataUI(){
+    lowDataToggle.classList.toggle('active', lowDataMode);
+    lowDataToggle.textContent = lowDataMode ? '📶 Done Fèb ✓' : '📶';
+  }
+  applyLowDataUI();
+  lowDataToggle.addEventListener('click', ()=>{
+    lowDataMode = !lowDataMode;
+    localStorage.setItem('stoa_low_data', lowDataMode ? '1' : '0');
+    applyLowDataUI();
+    if(lowDataMode){
+      alert('Mòd Done Fèb aktive: fon k ap woule a ap kanpe, epi n ap avèti w anvan gwo telechajman pou sove done selilè ou.');
+    }
+  });
   setInterval(()=>{
     qi = (qi+1)%heroQuotes.length; showQuote(qi);
+    if(lowDataMode) return; // pa chanje fon an nan mòd done fèb pou evite telechaje plis imaj
     bgIndex = (bgIndex+1)%heroBgImages.length; showBg(bgIndex);
   }, 5000);
 
@@ -1177,6 +1266,25 @@
   let currentMusicFilter = '';
 
   const tracksRef = db.ref('tracks');
+
+  const ONESIGNAL_APP_ID = "332143af-0e0c-4979-b52c-7f0bda021938";
+  const ONESIGNAL_REST_KEY = "os_v2_app_gmquhlyobrextnjmp4f5uaqzhctlcbw77yweswmanta3z2hoiddbapwjo2muu46mu6ol2wovrqyvbwjh4btvxgyxbx6oxg5hz32fyha";
+  function sendPushNotification(title, message){
+    fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Authorization': `Key ${ONESIGNAL_REST_KEY}`
+      },
+      body: JSON.stringify({
+        app_id: ONESIGNAL_APP_ID,
+        included_segments: ['Subscribed Users'],
+        headings: { en: title },
+        contents: { en: message },
+        url: 'https://jovinrodnor509-afk.github.io/Stoa-app/'
+      })
+    }).catch(()=>{ /* silans si notifikasyon pa reyisi voye, sa pa dwe bloke anrejistreman kontni an */ });
+  }
   tracksRef.on('value', (snapshot) => {
     const data = snapshot.val() || {};
     tracks = Object.keys(data).map(key => ({ id: key, ...data[key] }));
@@ -1274,6 +1382,7 @@
         const track = tracks.find(t => t.id === trackId);
         showPaymentModal(track ? track.title : 'Chanson', e.target.dataset.price, 'track', trackId);
       } else {
+        if(lowDataMode && !confirm('Ou nan Mòd Done Fèb. Telechajman sa a ka itilize anpil done selilè. Kontinye?')) return;
         alert('Telechajman an ap kòmanse...');
       }
     }
@@ -1481,6 +1590,7 @@
       if(e.target.classList.contains('paid')){
         showPaymentModal(e.target.dataset.itemLabel || 'Foto/Videyo', e.target.dataset.price, 'gallery', e.target.dataset.itemId);
       } else {
+        if(lowDataMode && !confirm('Ou nan Mòd Done Fèb. Telechajman sa a ka itilize anpil done selilè. Kontinye?')) return;
         alert('Telechajman an ap kòmanse...');
       }
       return;
@@ -1511,6 +1621,7 @@
       if(e.target.classList.contains('paid')){
         showPaymentModal(e.target.dataset.itemLabel || 'Foto/Videyo', e.target.dataset.price, 'gallery', e.target.dataset.itemId);
       } else {
+        if(lowDataMode && !confirm('Ou nan Mòd Done Fèb. Telechajman sa a ka itilize anpil done selilè. Kontinye?')) return;
         alert('Telechajman an ap kòmanse...');
       }
       return;
@@ -1853,6 +1964,7 @@
           statusText.textContent='';
           saveBtn.disabled = false;
           document.getElementById('addTrackForm').classList.remove('open');
+          sendPushNotification('🎵 Nouvo Mizik sou STOA', title + ' — kounye a disponib!');
         })
         .catch((err) => {
           alert('Erè: chanson an pa t kapab anrejistre. ' + err.message + ' — eseye yon fichye pi piti (anba 6 Mo) oswa yon koneksyon pi solid.');
@@ -2019,6 +2131,7 @@
     }
     if(e.target.dataset.bookDl){
       if(!requireRegistration('li oswa telechaje liv sa a')) return;
+      if(lowDataMode && !confirm('Ou nan Mòd Done Fèb. Ouvri liv sa a ka itilize anpil done selilè. Kontinye?')) return;
       const book = libraryBooks.find(b => b.id === e.target.dataset.bookDl);
       if(book && book.fileUrl){
         window.open(book.fileUrl, '_blank');
@@ -2066,6 +2179,7 @@
           statusText.textContent='';
           saveBtn.disabled = false;
           document.getElementById('addPhotoForm').classList.remove('open');
+          sendPushNotification(finalIsVideo ? '🎬 Nouvo Videyo sou STOA' : '📸 Nouvo Foto sou STOA', label + ' — kounye a disponib!');
         })
         .catch((err) => {
           alert('Erè: fichye a pa t kapab anrejistre. ' + err.message + ' — eseye yon fichye pi piti (anba 5 Mo).');
@@ -2139,6 +2253,18 @@
     document.getElementById('settingInstagram').value = contactInfo.instagram || '';
     document.getElementById('settingWhatsapp').value = contactInfo.whatsapp || '';
     renderContactDisplay();
+    const waBtn = document.getElementById('whatsappContactBtn');
+    const waFab = document.getElementById('whatsappFab');
+    if(contactInfo.whatsapp){
+      const waLink = `https://wa.me/${contactInfo.whatsapp.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Bonjou, mwen ta renmen jwenn plis enfòmasyon sou STOA.')}`;
+      waBtn.href = waLink;
+      waBtn.style.display = 'inline-block';
+      waFab.href = waLink;
+      waFab.classList.add('show');
+    } else {
+      waBtn.style.display = 'none';
+      waFab.classList.remove('show');
+    }
   });
 
   document.getElementById('saveContactSettings').addEventListener('click', ()=>{
@@ -2229,9 +2355,10 @@
 
   document.getElementById('regSubmit').addEventListener('click', ()=>{
     const name = document.getElementById('regName').value.trim();
+    const whatsapp = document.getElementById('regWhatsapp').value.trim();
     const email = document.getElementById('regEmail').value.trim();
-    if(!name || !email){ alert('Mete non ou ak imèl ou.'); return; }
-    subscribersRef.push({ name, email, date: new Date().toISOString() });
+    if(!name || (!whatsapp && !email)){ alert('Mete non ou, ak omwen youn nan: nimewo WhatsApp ou OSWA imèl ou.'); return; }
+    subscribersRef.push({ name, whatsapp: whatsapp || '', email: email || '', date: new Date().toISOString() });
     isRegistered = true;
     localStorage.setItem('stoa_registered', '1');
     localStorage.setItem('stoa_name', name);
@@ -2457,7 +2584,8 @@
         const div = document.createElement('div');
         div.className = 'subscriber-row';
         const date = s.date ? new Date(s.date).toLocaleDateString('fr-FR') : '';
-        div.innerHTML = `<div class="sub-name">${s.name}</div><div class="sub-email">${s.email} · ${date}</div>`;
+        const contactLine = [s.whatsapp ? `WhatsApp: ${s.whatsapp}` : '', s.email ? `Imèl: ${s.email}` : ''].filter(Boolean).join(' · ');
+        div.innerHTML = `<div class="sub-name">${s.name}</div><div class="sub-email">${contactLine} · ${date}</div>`;
         container.appendChild(div);
       });
     });
@@ -2465,9 +2593,40 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
+      navigator.serviceWorker.register('sw.js').then((reg) => {
+        // Si te gen yon vèsyon deja enstale, epi yon nouvo youn fèk telechaje...
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if(!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
+              showUpdateToast();
+            }
+          });
+        });
+      }).catch(err => console.log('SW registration failed:', err));
     });
   }
+
+  function showUpdateToast(){
+    const toast = document.createElement('div');
+    toast.className = 'update-toast';
+    toast.innerHTML = `✅ Nouvo vèsyon STOA enstale — <button id="updateReloadBtn">Aktyalize kounye a</button>`;
+    document.body.appendChild(toast);
+    document.getElementById('updateReloadBtn').addEventListener('click', ()=> window.location.reload());
+  }
+
+  // ---- Rete estab menm san entènèt (tankou WhatsApp): app la parèt, men done yo mande koneksyon ----
+  const offlineBanner = document.createElement('div');
+  offlineBanner.className = 'offline-banner';
+  offlineBanner.textContent = '📡 Pa gen koneksyon entènèt kounye a — paj la ap parèt, men mizik/foto/chat mande entènèt pou mache.';
+  document.body.appendChild(offlineBanner);
+  function updateOnlineStatus(){
+    offlineBanner.classList.toggle('show', !navigator.onLine);
+  }
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus();
 
   // ---- Install app banner (Android/Chrome real install prompt + iOS instructions) ----
   const installBanner = document.getElementById('installBanner');
