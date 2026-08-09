@@ -1215,8 +1215,6 @@
           <div class="ac-contact-name" id="acThreadName"></div>
           <div class="ac-thread-status" id="acThreadStatus"></div>
         </div>
-        <button class="ac-call-btn" id="acVoiceCallBtn" title="Rele vwa">📞</button>
-        <button class="ac-call-btn" id="acVideoCallBtn" title="Rele videyo">📹</button>
         <button class="ac-search-btn" id="acSearchToggle" title="Chèche nan mesaj yo">🔎</button>
       </div>
       <div class="ac-search-bar" id="acSearchBar" style="display:none;">
@@ -1370,7 +1368,6 @@
 <script>
   // ---- AyitiChat: enrejistreman "listeners" deplase anlè pou yo toujou inisyalize anvan tout lòt kòd ----
   const acDeliveryListeners = {};
-  const acCallListeners = {};
 
   // ---- Navigation ----
   const navButtons = document.querySelectorAll('nav button');
@@ -1549,11 +1546,6 @@
     }
   }
 
-  // ---- Cloudinary config (free file hosting, no credit card needed) ----
-  // IMPORTANT: Jovin must replace these two values after creating a free Cloudinary account.
-  const CLOUDINARY_CLOUD_NAME = "REPLACE_WITH_YOUR_CLOUD_NAME";
-  const CLOUDINARY_UPLOAD_PRESET = "REPLACE_WITH_YOUR_UPLOAD_PRESET";
-
   function convertToDirectLink(url){
     if(!url) return url;
     // Google Drive share link -> direct link
@@ -1602,28 +1594,6 @@
     };
     reader.onerror = () => onError(new Error('Pa t kapab li fichye a.'));
     reader.readAsDataURL(file);
-  }
-
-  function uploadToCloudinary(file, onProgress, onDone, onError){
-    const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
-    const formData = new FormData();
-    formData.append('file', file, file.name || 'voice-message.webm');
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', url);
-    xhr.upload.onprogress = (e) => {
-      if(e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
-    };
-    xhr.onload = () => {
-      if(xhr.status === 200){
-        const response = JSON.parse(xhr.responseText);
-        onDone(response.secure_url);
-      } else {
-        onError(new Error('Cloudinary upload failed: ' + xhr.status));
-      }
-    };
-    xhr.onerror = () => onError(new Error('Erè rezo pandan telechajman an.'));
-    xhr.send(formData);
   }
 
   // ---- Admin mode (declared early: used by render functions below) ----
@@ -3129,7 +3099,6 @@
   const ayitiUsersRef = db.ref('ayitiUsers');
   const ayitiChatsRef = db.ref('ayitiChats');
   const ayitiStatusRef = db.ref('ayitiStatus');
-  const ayitiCallsRef = db.ref('ayitiCalls');
   const DAY_MS = 24 * 60 * 60 * 1000;
 
   function normalizePhone(str){ return (str || '').replace(/[^0-9]/g, ''); }
@@ -3325,7 +3294,6 @@
     acLoadStatuses();
     acSetupPresence();
     acSetupDeliveryListeners();
-    acSetupCallListeners();
   }
 
   function acSetupPresence(){
@@ -3388,7 +3356,6 @@
     acSaveContacts(existing);
     acLoadContacts();
     acSetupDeliveryListeners();
-    acSetupCallListeners();
     alert(addedCount > 0 ? `${addedCount} kontak jwenn sou STOA ajoute!` : 'Pa gen okenn nan kontak sa yo ki sou STOA pou kounye a.');
   }
 
@@ -3717,7 +3684,7 @@
     });
   }
 
-  const AC_MAX_FILE_SIZE = 15 * 1024 * 1024; // 15 MB
+  const AC_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB (baz done a estoke fichye tankou base64, kidonk nou kenbe limit la rezonab)
 
   document.getElementById('acAttachBtn').addEventListener('click', ()=>{
     document.getElementById('acFileInput').click();
@@ -3729,7 +3696,7 @@
     if(!file) return;
     if(!acCurrentThreadPhone){ alert('Louvri yon konvèsasyon anvan.'); return; }
     if(file.size > AC_MAX_FILE_SIZE){
-      alert('Fichye a twò gwo. Limit la se 15 MB.');
+      alert('Fichye a twò gwo. Limit la se 5 MB.');
       return;
     }
     const progressWrap = document.getElementById('acUploadProgress');
@@ -3738,16 +3705,16 @@
     progressWrap.style.display = 'flex';
     barFill.style.width = '0%';
     percentLabel.textContent = '0%';
-    uploadToCloudinary(
+    fileToBase64(
       file,
       (pct)=>{ barFill.style.width = pct + '%'; percentLabel.textContent = pct + '%'; },
-      (url)=>{
+      (base64)=>{
         progressWrap.style.display = 'none';
-        acSendMessage({ file: url, fileName: file.name, fileType: file.type, fileSize: file.size });
+        acSendMessage({ file: base64, fileName: file.name, fileType: file.type, fileSize: file.size });
       },
       (err)=>{
         progressWrap.style.display = 'none';
-        alert('Erè pandan telechajman fichye a. Eseye ankò.');
+        alert('Erè pandan anrejistreman fichye a. Eseye ankò.');
       }
     );
   });
@@ -3880,16 +3847,16 @@
           progressWrap.style.display = 'flex';
           barFill.style.width = '0%';
           percentLabel.textContent = '0%';
-          uploadToCloudinary(
+          fileToBase64(
             blob,
             (pct)=>{ barFill.style.width = pct + '%'; percentLabel.textContent = pct + '%'; },
-            (url)=>{
+            (base64)=>{
               progressWrap.style.display = 'none';
-              acSendMessage({ voice: url });
+              acSendMessage({ voice: base64 });
             },
             (err)=>{
               progressWrap.style.display = 'none';
-              alert('Erè pandan telechajman mesaj vokal la. Eseye ankò.');
+              alert('Erè pandan anrejistreman mesaj vokal la. Eseye ankò.');
             }
           );
         };
@@ -3900,239 +3867,6 @@
       acMediaRecorder.stop();
       btn.classList.remove('recording');
     }
-  });
-
-  // ==================== APÈL VWA/VIDEYO (WebRTC) ====================
-  const RTC_CONFIG = { iceServers: [
-    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }
-  ]};
-
-  let acPeerConnection = null;
-  let acLocalStream = null;
-  let acActiveCallChatId = null;
-  let acActiveCallPhone = null;
-  let acIsCaller = false;
-  let acCallType = 'audio';
-  let acCallTimerInterval = null;
-  let acCallStartTime = null;
-  let acPendingIncoming = null;
-
-  function acSetupCallListeners(){
-    acGetContacts().forEach(phone=>{
-      if(acCallListeners[phone]) return;
-      const chatId = chatIdFor(acMyPhone, phone);
-      const ref = ayitiCallsRef.child(chatId);
-      ref.on('value', (snap)=>{
-        const call = snap.val();
-        if(!call) return;
-        if(call.status === 'ringing' && call.callee === acMyPhone && !acActiveCallChatId){
-          acShowIncomingCall(chatId, call, phone);
-        }
-        if(call.status === 'accepted' && acIsCaller && acActiveCallChatId === chatId && call.answer && acPeerConnection && !acPeerConnection.currentRemoteDescription){
-          acPeerConnection.setRemoteDescription(new RTCSessionDescription(call.answer));
-          document.getElementById('acCallStatus').textContent = 'Konekte';
-          acStartCallTimer();
-        }
-        if(call.status === 'declined' && acActiveCallChatId === chatId){
-          alert('Apèl la refize.');
-          acCleanupCall(chatId);
-        }
-        if(call.status === 'ended' && acActiveCallChatId === chatId){
-          acCleanupCall(chatId);
-        }
-      });
-      acCallListeners[phone] = ref;
-    });
-  }
-
-  function acShowIncomingCall(chatId, call, phone){
-    ayitiUsersRef.child(phone).once('value').then(snap=>{
-      const c = snap.val() || { phone };
-      document.getElementById('acIncomingPhoto').src = c.photo || 'icon-192.png';
-      document.getElementById('acIncomingName').textContent = [c.firstName, c.lastName].filter(Boolean).join(' ') || 'Yon moun';
-      document.getElementById('acIncomingType').textContent = call.type === 'video' ? 'Apèl videyo k ap antre...' : 'Apèl vwa k ap antre...';
-      document.getElementById('acIncomingCallOverlay').style.display = 'flex';
-      acPendingIncoming = { chatId, call, phone, contact: c };
-      if(navigator.vibrate) navigator.vibrate([400,200,400,200,400]);
-    });
-  }
-
-  function acSetupRemoteStreamHandling(type){
-    const remoteStream = new MediaStream();
-    if(type === 'video'){
-      document.getElementById('acRemoteVideo').srcObject = remoteStream;
-    } else {
-      document.getElementById('acRemoteAudio').srcObject = remoteStream;
-    }
-    acPeerConnection.ontrack = (e)=>{ remoteStream.addTrack(e.track); };
-  }
-
-  function acShowActiveCallUI(contact, type, statusText){
-    document.getElementById('acActivePhoto').src = contact.photo || 'icon-192.png';
-    document.getElementById('acActiveName').textContent = [contact.firstName, contact.lastName].filter(Boolean).join(' ') || 'Yon moun';
-    document.getElementById('acCallStatus').textContent = statusText;
-    const isVideo = type === 'video';
-    document.getElementById('acCameraBtn').style.display = isVideo ? 'inline-block' : 'none';
-    document.getElementById('acLocalVideo').style.display = isVideo ? 'block' : 'none';
-    document.getElementById('acRemoteVideo').style.display = isVideo ? 'block' : 'none';
-    document.getElementById('acActivePhoto').style.display = isVideo ? 'none' : 'block';
-    if(isVideo && acLocalStream) document.getElementById('acLocalVideo').srcObject = acLocalStream;
-    document.getElementById('acActiveCallOverlay').style.display = 'flex';
-  }
-
-  function acStartCallTimer(){
-    acCallStartTime = Date.now();
-    clearInterval(acCallTimerInterval);
-    acCallTimerInterval = setInterval(()=>{
-      const secs = Math.floor((Date.now() - acCallStartTime) / 1000);
-      const mm = String(Math.floor(secs/60)).padStart(2,'0');
-      const ss = String(secs%60).padStart(2,'0');
-      document.getElementById('acCallStatus').textContent = `${mm}:${ss}`;
-    }, 1000);
-  }
-
-  function acCleanupCall(chatId){
-    clearInterval(acCallTimerInterval);
-    if(acPeerConnection){ acPeerConnection.close(); acPeerConnection = null; }
-    if(acLocalStream){ acLocalStream.getTracks().forEach(t=>t.stop()); acLocalStream = null; }
-    document.getElementById('acActiveCallOverlay').style.display = 'none';
-    document.getElementById('acIncomingCallOverlay').style.display = 'none';
-    document.getElementById('acRemoteVideo').srcObject = null;
-    document.getElementById('acLocalVideo').srcObject = null;
-    document.getElementById('acRemoteAudio').srcObject = null;
-    document.getElementById('acMuteBtn').classList.remove('ac-off');
-    document.getElementById('acCameraBtn').classList.remove('ac-off');
-    if(navigator.vibrate) navigator.vibrate(0);
-    if(chatId) setTimeout(()=> ayitiCallsRef.child(chatId).remove(), 3000);
-    acActiveCallChatId = null;
-    acActiveCallPhone = null;
-    acIsCaller = false;
-    acPendingIncoming = null;
-  }
-
-  async function acStartCall(contact, type){
-    if(acActiveCallChatId){ alert('Ou deja nan yon apèl.'); return; }
-    acCallType = type;
-    acIsCaller = true;
-    acActiveCallPhone = contact.phone;
-    const chatId = chatIdFor(acMyPhone, contact.phone);
-    acActiveCallChatId = chatId;
-    try{
-      acLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
-    }catch(e){
-      alert('Pa t kapab jwenn aksè mikwo/kamera a. Verifye pèmisyon yo.');
-      acActiveCallChatId = null; acIsCaller = false;
-      return;
-    }
-    acShowActiveCallUI(contact, type, 'Ap rele...');
-    acPeerConnection = new RTCPeerConnection(RTC_CONFIG);
-    acLocalStream.getTracks().forEach(t=> acPeerConnection.addTrack(t, acLocalStream));
-    acSetupRemoteStreamHandling(type);
-
-    const callRef = ayitiCallsRef.child(chatId);
-    await callRef.remove();
-
-    acPeerConnection.onicecandidate = (e)=>{
-      if(e.candidate) callRef.child('callerCandidates').push(e.candidate.toJSON());
-    };
-
-    const offer = await acPeerConnection.createOffer();
-    await acPeerConnection.setLocalDescription(offer);
-
-    await callRef.set({
-      caller: acMyPhone, callee: contact.phone, type, status: 'ringing',
-      offer: { sdp: offer.sdp, type: offer.type }, timestamp: Date.now()
-    });
-
-    callRef.child('calleeCandidates').on('child_added', (snap)=>{
-      if(acPeerConnection) acPeerConnection.addIceCandidate(new RTCIceCandidate(snap.val())).catch(()=>{});
-    });
-
-    ayitiUsersRef.child(acMyPhone).once('value').then(snap=>{
-      const me = snap.val();
-      const name = me ? [me.firstName, me.lastName].filter(Boolean).join(' ') : 'Yon moun';
-      sendPrivatePush(contact.phone, `📞 ${name}`, type === 'video' ? 'Apèl videyo k ap antre' : 'Apèl vwa k ap antre');
-    });
-  }
-
-  document.getElementById('acAcceptCallBtn').addEventListener('click', async ()=>{
-    if(!acPendingIncoming) return;
-    const { chatId, call, phone, contact } = acPendingIncoming;
-    document.getElementById('acIncomingCallOverlay').style.display = 'none';
-    if(navigator.vibrate) navigator.vibrate(0);
-    acIsCaller = false;
-    acActiveCallChatId = chatId;
-    acActiveCallPhone = phone;
-    acCallType = call.type;
-    try{
-      acLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: call.type === 'video' });
-    }catch(e){
-      alert('Pa t kapab jwenn aksè mikwo/kamera a. Verifye pèmisyon yo.');
-      ayitiCallsRef.child(chatId).update({ status: 'declined' });
-      acActiveCallChatId = null;
-      acPendingIncoming = null;
-      return;
-    }
-    acShowActiveCallUI(contact, call.type, 'Ap konekte...');
-    acPeerConnection = new RTCPeerConnection(RTC_CONFIG);
-    acLocalStream.getTracks().forEach(t=> acPeerConnection.addTrack(t, acLocalStream));
-    acSetupRemoteStreamHandling(call.type);
-    const callRef = ayitiCallsRef.child(chatId);
-    acPeerConnection.onicecandidate = (e)=>{
-      if(e.candidate) callRef.child('calleeCandidates').push(e.candidate.toJSON());
-    };
-    await acPeerConnection.setRemoteDescription(new RTCSessionDescription(call.offer));
-    const answer = await acPeerConnection.createAnswer();
-    await acPeerConnection.setLocalDescription(answer);
-    await callRef.update({ answer: { sdp: answer.sdp, type: answer.type }, status: 'accepted' });
-    callRef.child('callerCandidates').on('child_added', (snap)=>{
-      if(acPeerConnection) acPeerConnection.addIceCandidate(new RTCIceCandidate(snap.val())).catch(()=>{});
-    });
-    acStartCallTimer();
-    document.getElementById('acCallStatus').textContent = 'Konekte';
-  });
-
-  document.getElementById('acDeclineCallBtn').addEventListener('click', ()=>{
-    if(acPendingIncoming) ayitiCallsRef.child(acPendingIncoming.chatId).update({ status: 'declined' });
-    document.getElementById('acIncomingCallOverlay').style.display = 'none';
-    acPendingIncoming = null;
-    if(navigator.vibrate) navigator.vibrate(0);
-  });
-
-  document.getElementById('acHangupBtn').addEventListener('click', ()=>{
-    if(acActiveCallChatId) ayitiCallsRef.child(acActiveCallChatId).update({ status: 'ended' });
-    acCleanupCall(acActiveCallChatId);
-  });
-
-  document.getElementById('acMuteBtn').addEventListener('click', ()=>{
-    if(!acLocalStream) return;
-    const track = acLocalStream.getAudioTracks()[0];
-    if(!track) return;
-    track.enabled = !track.enabled;
-    document.getElementById('acMuteBtn').classList.toggle('ac-off', !track.enabled);
-  });
-
-  document.getElementById('acCameraBtn').addEventListener('click', ()=>{
-    if(!acLocalStream) return;
-    const track = acLocalStream.getVideoTracks()[0];
-    if(!track) return;
-    track.enabled = !track.enabled;
-    document.getElementById('acCameraBtn').classList.toggle('ac-off', !track.enabled);
-  });
-
-  function acGetCurrentThreadContact(){
-    return ayitiUsersRef.child(acCurrentThreadPhone).once('value').then(snap=> snap.val());
-  }
-
-  document.getElementById('acVoiceCallBtn').addEventListener('click', async ()=>{
-    if(!acCurrentThreadPhone) return;
-    const c = await acGetCurrentThreadContact();
-    if(c) acStartCall(c, 'audio');
-  });
-  document.getElementById('acVideoCallBtn').addEventListener('click', async ()=>{
-    if(!acCurrentThreadPhone) return;
-    const c = await acGetCurrentThreadContact();
-    if(c) acStartCall(c, 'video');
   });
 
   const acNavBtn = document.querySelector('nav button[data-panel="ayitichat"]');
@@ -4157,35 +3891,6 @@
     </div>
   </div>
 
-  <!-- Overlay apèl k ap antre -->
-  <div class="ac-call-overlay" id="acIncomingCallOverlay" style="display:none;">
-    <div class="ac-call-card">
-      <img class="ac-call-photo ac-call-ring" id="acIncomingPhoto" src="">
-      <div class="ac-call-name" id="acIncomingName"></div>
-      <div class="ac-call-sub" id="acIncomingType">Apèl vwa k ap antre...</div>
-      <div class="ac-call-actions">
-        <button class="ac-call-decline" id="acDeclineCallBtn">✕ Refize</button>
-        <button class="ac-call-accept" id="acAcceptCallBtn">✓ Reponn</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Overlay apèl an kou -->
-  <div class="ac-call-overlay" id="acActiveCallOverlay" style="display:none;">
-    <div class="ac-call-card ac-call-card-active">
-      <video class="ac-remote-video" id="acRemoteVideo" autoplay playsinline style="display:none;"></video>
-      <audio id="acRemoteAudio" autoplay></audio>
-      <img class="ac-call-photo" id="acActivePhoto" src="">
-      <div class="ac-call-name" id="acActiveName"></div>
-      <div class="ac-call-sub" id="acCallStatus">Ap konekte...</div>
-      <video class="ac-local-video" id="acLocalVideo" autoplay playsinline muted style="display:none;"></video>
-      <div class="ac-call-actions">
-        <button class="ac-call-icon-btn" id="acMuteBtn" title="Mit">🎤</button>
-        <button class="ac-call-icon-btn" id="acCameraBtn" title="Kamera" style="display:none;">📹</button>
-        <button class="ac-call-decline" id="acHangupBtn">📞 Rakwoche</button>
-      </div>
-    </div>
-  </div>
 
 </body>
 </html>
