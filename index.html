@@ -1276,6 +1276,12 @@
 
     <div class="admin-only" style="display:none;margin-top:20px;">
       <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
+        <div class="section-title" style="font-size:17px; margin-bottom:10px;">💱 To chanj (1 dola = ? goud)</div>
+        <input type="number" id="htgRateInput" min="1" step="0.01" placeholder="egzanp 131" style="width:100%;background:var(--stone-dark);border:1px solid var(--stone-line);color:var(--parchment);padding:9px 10px;border-radius:6px;margin-bottom:8px;">
+        <button class="dl-btn" id="saveHtgRate">Sove to a</button>
+        <div id="htgRateStatus" style="font-size:12px;margin-top:8px;"></div>
+      </div>
+      <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
         <div class="section-title" style="font-size:17px; margin-bottom:10px;">🔒 Pwoteje foto/videyo peye</div>
         <div style="font-size:12px;color:var(--parchment-dim);margin-bottom:10px;">Fè sa yon fwa pou foto ak videyo peye ou te deja ajoute yo (yo pral gen yon aperçu flou piblik).</div>
         <button class="dl-btn" id="migrateGalleryBtn">Pwoteje atik ki egziste deja</button>
@@ -1516,6 +1522,22 @@
   const STOA_UID = getUid();
   const ADMIN_UID = 'n5bkCTDFA1MYxpAbdTKWVXqECg72';
   let PAY_UID = null; // idantite Firebase (anonim) itilize pou peman yo
+  // ---- Pri an dola ($) ak an goud (HTG) ----
+  let HTG_RATE = 131; // goud pou 1 dola (admin ka chanje l nan Sou Mwen)
+  function priceLabel(usd){
+    const n = Number(usd) || 0;
+    return '$' + n + ' · ' + Math.ceil(n * HTG_RATE).toLocaleString('fr-FR') + ' HTG';
+  }
+  db.ref('settings/htgRate').on('value', (snap) => {
+    const v = Number(snap.val());
+    if(v > 0) HTG_RATE = v;
+    const inp = document.getElementById('htgRateInput');
+    if(inp && document.activeElement !== inp) inp.value = HTG_RATE;
+    if(typeof renderTracks === 'function') renderTracks(currentMusicFilter);
+    if(typeof renderGallery === 'function') renderGallery(currentGalleryFilter);
+    if(typeof renderVideos === 'function') renderVideos(currentVideoFilter);
+    if(typeof renderLibrary === 'function') renderLibrary(currentLibraryFilter);
+  }, ()=>{});
   const PURCHASE_VALID_MS = 2 * 24 * 60 * 60 * 1000; // 2 jou
 
   // ---- Purchases (self-confirmed "Mwen fin peye") tracked so paid items re-lock after 2 days ----
@@ -1843,10 +1865,10 @@
       const unlocked = isFree || isPurchaseActive('track', id);
       const priceBadge = isFree
         ? `<span class="price-badge free">Gratis</span>`
-        : `<span class="price-badge paid">$${t.price}</span>`;
+        : `<span class="price-badge paid">${priceLabel(t.price)}</span>`;
       const dlBtn = unlocked
         ? `<button class="dl-btn" data-track-id="${id}">Telechaje</button>`
-        : `<button class="dl-btn paid-btn" data-track-id="${id}" data-price="${t.price}">Achte $${t.price}</button>`;
+        : `<button class="dl-btn paid-btn" data-track-id="${id}" data-price="${t.price}">Achte ${priceLabel(t.price)}</button>`;
       const removeBtn = isAdmin ? `<button class="item-remove" data-remove-track="${id}">Efase</button>` : '';
       div.innerHTML = `
         <div class="track-top-row">
@@ -2044,10 +2066,10 @@
       const unlocked = isFree || isPurchaseActive('gallery', g.id);
       const badge = isFree
         ? `<span class="price-badge free">Gratis</span>`
-        : `<span class="price-badge paid">$${g.price}</span>`;
+        : `<span class="price-badge paid">${priceLabel(g.price)}</span>`;
       const dl = unlocked
         ? `<span class="gallery-dl" data-item-id="${g.id}">↓</span>`
-        : `<span class="gallery-dl paid" data-item-id="${g.id}" data-price="${g.price}" data-item-label="${g.label}">Achte $${g.price}</span>`;
+        : `<span class="gallery-dl paid" data-item-id="${g.id}" data-price="${g.price}" data-item-label="${g.label}">Achte ${priceLabel(g.price)}</span>`;
       if(g.hasMedia && unlocked) ensureGalleryMedia(g.id);
       const imgSrc = (g.hasMedia && unlocked && galleryMediaCache[g.id]) || g.customUrl || `https://picsum.photos/seed/stoa${g.seed || g.id}/500/625`;
       const removeBtn = isAdmin ? `<span class="gallery-dl" style="left:8px;right:auto;bottom:auto;top:34px;background:rgba(201,106,90,0.85);cursor:pointer" data-remove-photo="${g.id}">Efase</span>` : '';
@@ -2081,10 +2103,10 @@
       const unlocked = isFree || isPurchaseActive('gallery', g.id);
       const badge = isFree
         ? `<span class="price-badge free">Gratis</span>`
-        : `<span class="price-badge paid">$${g.price}</span>`;
+        : `<span class="price-badge paid">${priceLabel(g.price)}</span>`;
       const dl = unlocked
         ? `<span class="gallery-dl" data-item-id="${g.id}">↓</span>`
-        : `<span class="gallery-dl paid" data-item-id="${g.id}" data-price="${g.price}" data-item-label="${g.label}">Achte $${g.price}</span>`;
+        : `<span class="gallery-dl paid" data-item-id="${g.id}" data-price="${g.price}" data-item-label="${g.label}">Achte ${priceLabel(g.price)}</span>`;
       if(g.hasMedia && unlocked) ensureGalleryMedia(g.id);
       const vidFull = g.hasMedia ? (unlocked ? galleryMediaCache[g.id] : null) : g.customUrl;
       const vidSrc = vidFull || g.customUrl;
@@ -2629,8 +2651,8 @@
       const cover = b.coverUrl || `https://picsum.photos/seed/book${b.id}/300/450`;
       const dlBtn = unlocked
         ? `<a class="book-dl" data-book-read="${b.id}">📖 Li</a><a class="book-dl" data-book-dl="${b.id}">⬇️ Telechaje</a>`
-        : `<a class="book-dl paid" data-book-buy="${b.id}" data-price="${b.price}" data-title="${b.title}">💳 Achte $${b.price} pou li / telechaje</a>`;
-      const badge = isFree ? 'GRATIS' : (unlocked && !isAdmin ? '✓ Achte (2 jou)' : '$' + b.price);
+        : `<a class="book-dl paid" data-book-buy="${b.id}" data-price="${b.price}" data-title="${b.title}">💳 Achte ${priceLabel(b.price)} pou li / telechaje</a>`;
+      const badge = isFree ? 'GRATIS' : (unlocked && !isAdmin ? '✓ Achte (2 jou)' : priceLabel(b.price));
       const removeBtn = isAdmin ? `<div class="book-remove" data-remove-book="${b.id}">Efase</div>` : '';
       const div = document.createElement('div');
       div.className = 'book-card';
@@ -2981,6 +3003,15 @@
     st.textContent = '✓ ' + n + ' atik pwoteje.';
   });
 
+  document.addEventListener('click', (e) => {
+    if(!e.target.closest || !e.target.closest('#saveHtgRate') || !isAdmin) return;
+    const v = Number(document.getElementById('htgRateInput').value);
+    const st = document.getElementById('htgRateStatus');
+    if(!(v > 0)){ st.textContent = 'Mete yon nimewo pi gran pase 0.'; return; }
+    db.ref('settings/htgRate').set(v).then(()=>{ st.textContent = '✓ To a sove: 1$ = ' + v + ' HTG'; })
+      .catch(err => { st.textContent = 'Erè: ' + err.message; });
+  });
+
   // ---- Admin: peman an atant (sèlman admin konfime) ----
   const pendingRef = db.ref('pendingPurchases');
   function renderPending(data){
@@ -3018,7 +3049,7 @@
 
   function showPaymentModal(itemTitle, price, itemType, itemId){
     pendingPurchase = (itemType && itemId) ? {type: itemType, id: itemId} : null;
-    document.getElementById('paymentModalTitle').textContent = `Peye $${price} — ${itemTitle}`;
+    document.getElementById('paymentModalTitle').textContent = `Peye ${priceLabel(price)} — ${itemTitle}`;
     document.getElementById('payMoncashNumber').textContent = paymentInfo.moncash || '—';
     document.getElementById('payNatcashNumber').textContent = paymentInfo.natcash || '—';
     const paypalBox = document.getElementById('payPaypalBox');
@@ -3936,6 +3967,7 @@
     box.innerHTML = '';
     if(acThreadListener) acThreadListener.off();
     acThreadListener = ayitiChatsRef.child(chatId).child('messages').orderByChild('timestamp');
+    acThreadListener.once('value', ()=>{}, (err)=>{ box.innerHTML = '<div class="chat-empty">⚠️ Pa kapab chaje mesaj yo: ' + (err.code || err.message) + '</div>'; });
     acThreadListener.on('value', (snap)=>{
       box.innerHTML = '';
       if(!snap.exists()){
@@ -4007,8 +4039,10 @@
 
   function acSendMessage(data){
     const chatId = chatIdFor(acMyPhone, acCurrentThreadPhone);
-    ayitiChatsRef.child(chatId).child('messages').push({ from: acMyPhone, timestamp: Date.now(), ...data })
-      .catch((err)=> alert('Mesaj la pa t voye: ' + err.code + ' — ' + err.message));
+    const sendTimer = setTimeout(()=> acNotify('⏳ Mesaj la poko rive sou sèvè a. Verifye koneksyon entènèt ou.'), 8000);
+    const sendP = ayitiChatsRef.child(chatId).child('messages').push({ from: acMyPhone, timestamp: Date.now(), ...data })
+      .then(()=>{ clearTimeout(sendTimer); return true; })
+      .catch((err)=>{ clearTimeout(sendTimer); alert('Mesaj la pa t voye: ' + (err.code || '') + ' — ' + err.message); return false; });
     if(acMyTypingRef) acMyTypingRef.set(false);
     ayitiUsersRef.child(acMyPhone).once('value').then(snap=>{
       const me = snap.val();
@@ -4017,8 +4051,26 @@
       if(data.sticker) preview = `${data.sticker} Voye yon stiker`;
       if(data.file) preview = (data.fileType || '').startsWith('image/') ? '📷 Voye yon foto' : `📄 Voye yon fichye: ${data.fileName || ''}`;
       sendPrivatePush(acCurrentThreadPhone, `💬 ${name}`, preview);
-    });
+    }).catch(()=>{});
+    return sendP;
   }
+
+  // ---- Ti mesaj avètisman + eta koneksyon pou AyitiChat ----
+  function acNotify(msg){
+    let t = document.getElementById('acToast');
+    if(!t){
+      t = document.createElement('div'); t.id = 'acToast';
+      t.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:90px;z-index:99998;background:#2a2a2a;color:#fff;border:1px solid #c9a063;border-radius:10px;padding:10px 14px;font-size:13px;max-width:90%;text-align:center;display:none';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg; t.style.display = 'block';
+    clearTimeout(t._h); t._h = setTimeout(()=>{ t.style.display = 'none'; }, 5000);
+  }
+  let acWasOffline = false;
+  db.ref('.info/connected').on('value', (snap)=>{
+    if(snap.val() === false){ acWasOffline = true; acNotify('⚠️ Pa gen koneksyon ak sèvè a. Mesaj yo ap voye lè entènèt la tounen.'); }
+    else if(acWasOffline){ acWasOffline = false; acNotify('✅ Koneksyon an tounen.'); }
+  });
 
   const AC_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB (baz done a estoke fichye tankou base64, kidonk nou kenbe limit la rezonab)
 
@@ -4082,8 +4134,9 @@
     const input = document.getElementById('acThreadInput');
     const text = input.value.trim();
     if(!text) return;
-    acSendMessage({ text });
+    const sending = acSendMessage({ text });
     input.value = '';
+    if(sending) sending.then(ok => { if(!ok && !input.value) input.value = text; });
   });
   document.getElementById('acThreadInput').addEventListener('keydown', (e)=>{
     if(e.key === 'Enter') document.getElementById('acThreadSend').click();
