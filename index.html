@@ -1322,7 +1322,7 @@ window.addEventListener('error', function(e){
     </div>
 
     <div class="about-contact" id="aboutContactDisplay" style="display:none;"></div>
-    <div style="opacity:.45;font-size:11px;text-align:center;margin:14px 0 4px;">STOA v2026.10.24-f</div>
+    <div style="opacity:.45;font-size:11px;text-align:center;margin:14px 0 4px;">STOA v2026.10.24-i</div>
 
     <div class="admin-only" style="display:none;margin-top:20px;">
       <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
@@ -1454,6 +1454,22 @@ window.addEventListener('error', function(e){
 </div>
 
 <footer>STOA — kreye pa Jovin Rodnor</footer>
+
+<!-- Overlay pou wè yon pwofil (san modifye) -->
+  <div class="ac-call-overlay" id="acProfileViewOverlay" style="display:none;">
+    <div class="ac-call-card">
+      <img class="ac-call-photo" id="acProfileViewPhoto" src="">
+      <div class="ac-call-name" id="acProfileViewName"></div>
+      <div class="ac-call-sub" id="acProfileViewPhone"></div>
+      <div class="ac-call-sub" id="acProfileViewStatus"></div>
+      <div class="ac-call-actions">
+        <button class="ac-call-decline" id="acProfileViewClose">Fèmen</button>
+      </div>
+    </div>
+  </div>
+
+
+<div id="pdfReader"><div id="pdfReaderBar"><div id="pdfReaderTitle"></div><button id="pdfReaderDl">⬇️ Telechaje</button><button id="pdfReaderClose">✕ Fèmen</button></div><div id="pdfPages"></div></div>
 
 <script>
   // ---- AyitiChat: enrejistreman "listeners" deplase anlè pou yo toujou inisyalize anvan tout lòt kòd ----
@@ -1918,7 +1934,7 @@ window.addEventListener('error', function(e){
     currentMusicFilter = filter;
     trackList.innerHTML = '';
     const f = filter.trim().toLowerCase();
-    const filtered = tracks.filter(t => t.title.toLowerCase().includes(f));
+    const filtered = tracks.filter(t => String(t.title || '').toLowerCase().includes(f));
     noMusicResults.style.display = filtered.length ? 'none' : 'block';
     filtered.forEach((t, idx)=>{
       const id = t.id;
@@ -2097,7 +2113,7 @@ window.addEventListener('error', function(e){
   const galleryRef = db.ref('gallery');
   galleryRef.on('value', (snapshot) => {
     const data = snapshot.val() || {};
-    galleryItems = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+    galleryItems = Object.keys(data).filter(k => data[k] && typeof data[k] === 'object').map(key => ({ id: key, label: '', ...data[key] }));
     renderGallery(currentGalleryFilter);
     renderVideos(currentVideoFilter);
     if(typeof refreshNotifications === 'function') refreshNotifications();
@@ -2121,7 +2137,7 @@ window.addEventListener('error', function(e){
     currentGalleryFilter = filter;
     galleryGrid.innerHTML = '';
     const f = filter.trim().toLowerCase();
-    const filtered = galleryItems.filter(g => !g.isVideo && g.label.toLowerCase().includes(f));
+    const filtered = galleryItems.filter(g => !g.isVideo && String(g.label || '').toLowerCase().includes(f));
     noGalleryResults.style.display = filtered.length ? 'none' : 'block';
     filtered.forEach(g=>{
       const a = document.createElement('a');
@@ -2158,7 +2174,7 @@ window.addEventListener('error', function(e){
     currentVideoFilter = filter;
     videoGrid.innerHTML = '';
     const f = filter.trim().toLowerCase();
-    const filtered = galleryItems.filter(g => g.isVideo && g.label.toLowerCase().includes(f));
+    const filtered = galleryItems.filter(g => g.isVideo && String(g.label || '').toLowerCase().includes(f));
     noVideoResults.style.display = filtered.length ? 'none' : 'block';
     filtered.forEach(g=>{
       const a = document.createElement('a');
@@ -2389,7 +2405,7 @@ window.addEventListener('error', function(e){
     currentWisdomFilter = filter;
     wisdomList.innerHTML = '';
     const f = filter.trim().toLowerCase();
-    const filtered = wisdom.filter(w => w.text.toLowerCase().includes(f) || w.author.toLowerCase().includes(f));
+    const filtered = wisdom.filter(w => String(w.text || '').toLowerCase().includes(f) || String(w.author || '').toLowerCase().includes(f));
     noWisdomResults.style.display = filtered.length ? 'none' : 'block';
     filtered.forEach(w=>{
       const div = document.createElement('div');
@@ -2532,6 +2548,15 @@ window.addEventListener('error', function(e){
       return;
     }
     PAY_UID = user.uid;
+    try{
+      if(localStorage.getItem('stoa_registered') === '1' && !localStorage.getItem('stoa_sub_key') && user.uid !== ADMIN_UID){
+        const lastAct = parseInt(localStorage.getItem('stoa_act_ping') || '0', 10);
+        if(Date.now() - lastAct > 6 * 60 * 60 * 1000){
+          db.ref('activity/' + user.uid).set({ name: localStorage.getItem('stoa_name') || '', ts: Date.now() })
+            .then(() => localStorage.setItem('stoa_act_ping', String(Date.now()))).catch(()=>{});
+        }
+      }
+    }catch(e){}
     setAdminUI(user.uid === ADMIN_UID);
     if(user.uid === ADMIN_UID && typeof startReportsListener === 'function') startReportsListener();
     if(typeof renderTracks === 'function') renderTracks(currentMusicFilter);
@@ -2708,7 +2733,7 @@ window.addEventListener('error', function(e){
   function renderLibrary(filter=''){
     libraryGrid.innerHTML = '';
     const f = filter.toLowerCase();
-    const filtered = libraryBooks.filter(b => b.title.toLowerCase().includes(f) || b.author.toLowerCase().includes(f));
+    const filtered = libraryBooks.filter(b => String(b.title || '').toLowerCase().includes(f) || String(b.author || '').toLowerCase().includes(f));
     noLibraryResults.style.display = filtered.length ? 'none' : 'block';
     filtered.forEach(b => {
       const isFree = b.price === 0;
@@ -3152,22 +3177,46 @@ window.addEventListener('error', function(e){
       .then(() => localStorage.setItem('stoa_sub_ping', String(Date.now()))).catch(()=>{});
   })();
 
+  let regAttemptKey = null, regAttempts = 0;
   document.getElementById('regSubmit').addEventListener('click', ()=>{
     const name = document.getElementById('regName').value.trim();
     const whatsapp = document.getElementById('regWhatsapp').value.trim();
     const email = document.getElementById('regEmail').value.trim();
     if(!name || (!whatsapp && !email)){ alert('Mete non ou, ak omwen youn nan: nimewo WhatsApp ou OSWA imèl ou.'); return; }
-    const subRef = subscribersRef.push({ name, whatsapp: whatsapp || '', email: email || '', date: new Date().toISOString(), lastSeen: Date.now() });
-    localStorage.setItem('stoa_sub_key', subRef.key);
-    isRegistered = true;
-    localStorage.setItem('stoa_registered', '1');
-    localStorage.setItem('stoa_name', name);
-    document.getElementById('registerForm').classList.add('hide');
-    document.getElementById('registerDone').classList.add('show');
-    document.getElementById('notifBellWrap').style.display = 'block';
-    document.getElementById('chatInput').placeholder = 'Ekri yon mesaj...';
-    if(!isAdmin) document.getElementById('adminFab').style.display = 'none';
-    setTimeout(() => { document.getElementById('registerBanner').classList.add('collapsed'); }, 2200);
+    const btn = document.getElementById('regSubmit');
+    if(btn.disabled) return;
+    const oldLabel = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Ap anrejistre…';
+    const key = regAttemptKey || (regAttemptKey = subscribersRef.push().key);
+    regAttempts++;
+    const slow = setTimeout(()=>{ btn.textContent = 'Koneksyon dousman, ap tann…'; }, 8000);
+    const giveUp = setTimeout(()=>{
+      btn.disabled = false; btn.textContent = oldLabel;
+      alert('Koneksyon an twò dousman. Verifye entènèt ou epi klike ankò.');
+    }, 20000);
+    const finish = () => {
+      clearTimeout(slow); clearTimeout(giveUp);
+      btn.disabled = false; btn.textContent = oldLabel;
+      localStorage.setItem('stoa_sub_key', key);
+      isRegistered = true;
+      localStorage.setItem('stoa_registered', '1');
+      localStorage.setItem('stoa_name', name);
+      document.getElementById('registerForm').classList.add('hide');
+      document.getElementById('registerDone').classList.add('show');
+      document.getElementById('notifBellWrap').style.display = 'block';
+      document.getElementById('chatInput').placeholder = 'Ekri yon mesaj...';
+      if(!isAdmin) document.getElementById('adminFab').style.display = 'none';
+      setTimeout(() => { document.getElementById('registerBanner').classList.add('collapsed'); }, 2200);
+    };
+    subscribersRef.child(key).set({ name, whatsapp: whatsapp || '', email: email || '', date: new Date().toISOString(), lastSeen: Date.now() })
+      .then(finish)
+      .catch((err) => {
+        // PERMISSION_DENIED sou yon eseye ankò = premye eseye a te deja pase
+        if(err && err.code === 'PERMISSION_DENIED' && regAttempts > 1){ finish(); return; }
+        clearTimeout(slow); clearTimeout(giveUp);
+        btn.disabled = false; btn.textContent = oldLabel;
+        alert('Enskripsyon an pa t konfime: ' + ((err && err.code) || '') + ' — ' + ((err && err.message) || '') + '\nEseye ankò.');
+      });
   });
 
   document.getElementById('registerBannerToggle').addEventListener('click', ()=>{
@@ -3197,7 +3246,7 @@ window.addEventListener('error', function(e){
     const items = [];
     tracks.forEach(t => { if(t.createdAt > lastSeen) items.push({label: '🎵 ' + t.title, ts: t.createdAt}); });
     galleryItems.forEach(g => { if(g.createdAt > lastSeen) items.push({label: (g.isVideo ? '🎬 ' : '🖼️ ') + g.label, ts: g.createdAt}); });
-    wisdom.forEach(w => { if(w.createdAt > lastSeen) items.push({label: '💬 ' + w.text.slice(0,40) + (w.text.length>40?'...':''), ts: w.createdAt}); });
+    wisdom.forEach(w => { if(w.createdAt > lastSeen) items.push({label: '💬 ' + String(w.text || '').slice(0,40) + (String(w.text || '').length>40?'...':''), ts: w.createdAt}); });
     items.sort((a,b)=> b.ts - a.ts);
     notifBadge.style.display = items.length ? 'inline' : 'none';
     notifBadge.textContent = items.length;
@@ -3453,9 +3502,9 @@ window.addEventListener('error', function(e){
       });
     });
     // Kòmansman swivi aktivite (pou pa efase moun ki pa t gen done): sove yon fwa
-    db.ref('settings/activityTrackingStart').once('value').then(snap => {
+    db.ref('settings/activityTrackingStartV2').once('value').then(snap => {
       if(snap.exists()) trackingStart = Number(snap.val()) || Date.now();
-      else { trackingStart = Date.now(); db.ref('settings/activityTrackingStart').set(trackingStart).catch(()=>{}); }
+      else { trackingStart = Date.now(); db.ref('settings/activityTrackingStartV2').set(trackingStart).catch(()=>{}); }
     }).catch(()=>{});
   }
 
@@ -3467,9 +3516,16 @@ window.addEventListener('error', function(e){
   }
   async function buildCleanPlan(){
     const { days, cutoff } = cleanCutoff();
+    const actSnap = await db.ref('activity').once('value').catch(()=>null);
+    const actByName = {};
+    Object.values((actSnap && actSnap.val()) || {}).forEach(a => {
+      const nm = String(a.name || '').trim().toLowerCase();
+      if(nm && (a.ts || 0) > (actByName[nm] || 0)) actByName[nm] = a.ts;
+    });
     const subs = Object.entries(subsCache).filter(([k, x]) => {
       const last = x.lastSeen || Math.max(Date.parse(x.date) || 0, trackingStart);
-      return last < cutoff;
+      const byName = actByName[String(x.name || '').trim().toLowerCase()] || 0;
+      return last < cutoff && byName < cutoff;
     }).map(([k, x]) => ({ key: k, label: x.name || '(san non)', last: x.lastSeen || Date.parse(x.date) || 0 }));
     let chat = [];
     if(document.getElementById('cleanChat').checked){
@@ -3482,7 +3538,7 @@ window.addEventListener('error', function(e){
         return last < cutoff;
       }).map(([ph, u]) => ({ key: ph, label: [u.firstName, u.lastName].filter(Boolean).join(' ') || ph, last: (u.presence && u.presence.lastSeen) || Date.parse(u.updatedAt) || 0 }));
     }
-    return { days, subs, chat };
+    return { days, subs, chat, ready: (Date.now() - trackingStart) >= days * 24 * 60 * 60 * 1000, since: trackingStart };
   }
   function renderCleanPlan(plan){
     const box = document.getElementById('cleanResult');
@@ -3490,9 +3546,12 @@ window.addEventListener('error', function(e){
     const rows = (arr) => arr.slice(0, 40).map(x => '<div style="padding:3px 0;border-bottom:1px solid var(--stone-line)">' + escHtml(x.label) + ' <span style="opacity:.6">· ' + escHtml(fmt(x.last)) + '</span></div>').join('') + (arr.length > 40 ? '<div style="opacity:.6">… ak ' + (arr.length - 40) + ' lòt</div>' : '');
     const total = plan.subs.length + plan.chat.length;
     if(!total){ box.innerHTML = '✓ Pa gen moun inaktif depi ' + plan.days + ' jou.'; return; }
-    box.innerHTML = (plan.subs.length ? '<b>Enskri (' + plan.subs.length + '):</b>' + rows(plan.subs) : '')
+    const notReady = !plan.ready
+      ? '<div style="color:#e9b;margin:8px 0">⏳ Swivi aktivite a kòmanse ' + new Date(plan.since).toLocaleDateString('fr-FR') + '. Netwayaj la disponib apre ' + plan.days + ' jou, pou pa efase moun ki aktif men ki poko gen done.</div>'
+      : '';
+    box.innerHTML = notReady + (plan.subs.length ? '<b>Enskri (' + plan.subs.length + '):</b>' + rows(plan.subs) : '')
       + (plan.chat.length ? '<div style="margin-top:8px"><b>Pwofil AyitiChat (' + plan.chat.length + '):</b>' + rows(plan.chat) + '</div>' : '')
-      + '<button class="dl-btn" id="cleanConfirmBtn" style="margin-top:10px">🗑 Efase ' + total + ' moun</button>';
+      + (plan.ready ? '<button class="dl-btn" id="cleanConfirmBtn" style="margin-top:10px">🗑 Efase ' + total + ' moun</button>' : '');
   }
   document.addEventListener('click', async (e) => {
     if(!isAdmin || !e.target.closest) return;
@@ -4581,21 +4640,5 @@ window.addEventListener('error', function(e){
   }
   // ==================== FEN AYITICHAT ====================
 </script>
-
-  <!-- Overlay pou wè yon pwofil (san modifye) -->
-  <div class="ac-call-overlay" id="acProfileViewOverlay" style="display:none;">
-    <div class="ac-call-card">
-      <img class="ac-call-photo" id="acProfileViewPhoto" src="">
-      <div class="ac-call-name" id="acProfileViewName"></div>
-      <div class="ac-call-sub" id="acProfileViewPhone"></div>
-      <div class="ac-call-sub" id="acProfileViewStatus"></div>
-      <div class="ac-call-actions">
-        <button class="ac-call-decline" id="acProfileViewClose">Fèmen</button>
-      </div>
-    </div>
-  </div>
-
-
-<div id="pdfReader"><div id="pdfReaderBar"><div id="pdfReaderTitle"></div><button id="pdfReaderDl">⬇️ Telechaje</button><button id="pdfReaderClose">✕ Fèmen</button></div><div id="pdfPages"></div></div>
 </body>
 </html>
