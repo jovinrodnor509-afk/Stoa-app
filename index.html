@@ -1322,7 +1322,7 @@ window.addEventListener('error', function(e){
     </div>
 
     <div class="about-contact" id="aboutContactDisplay" style="display:none;"></div>
-    <div style="opacity:.45;font-size:11px;text-align:center;margin:14px 0 4px;">STOA v2026.10.24-i</div>
+    <div style="opacity:.45;font-size:11px;text-align:center;margin:14px 0 4px;">STOA v2026.10.24-j</div>
 
     <div class="admin-only" style="display:none;margin-top:20px;">
       <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
@@ -3846,6 +3846,7 @@ window.addEventListener('error', function(e){
 
   function acRenderMain(){
     if(!acMyPhone){ acShowSetup(); return; }
+    acWatchInbox();
     document.getElementById('acSetupWrap').style.display = 'none';
     document.getElementById('acMainWrap').style.display = 'block';
     document.getElementById('acThreadWrap').style.display = 'none';
@@ -3906,6 +3907,30 @@ window.addEventListener('error', function(e){
       acDeliveryListeners[phone] = ref;
     });
   }
+
+  // ---- Bwat resepsyon: moun ki ekri w parèt otomatikman nan kontak ou ----
+  const ayitiInboxRef = db.ref('ayitiInbox');
+  let acInboxWatching = null;
+  function acWatchInbox(){
+    if(!acMyPhone || acInboxWatching === acMyPhone) return;
+    acInboxWatching = acMyPhone;
+    ayitiInboxRef.child(acMyPhone).on('child_added', (snap) => {
+      const from = snap.key;
+      if(!from || from === acMyPhone || acIsBlocked(from)) return;
+      const list = acGetContacts();
+      if(list.includes(from)) return;
+      ayitiUsersRef.child(from).once('value').then(u => {
+        if(!u.exists()) return;
+        const cur = acGetContacts();
+        if(cur.includes(from)) return;
+        cur.push(from); acSaveContacts(cur);
+        acLoadContacts(); acSetupDeliveryListeners();
+        const v = u.val() || {};
+        acNotify('💬 Nouvo konvèsasyon: ' + ([v.firstName, v.lastName].filter(Boolean).join(' ') || from));
+      }).catch(()=>{});
+    }, () => {});
+  }
+  acWatchInbox();
 
   function acGetContacts(){
     try{ return JSON.parse(localStorage.getItem('stoa_ac_contacts') || '[]'); }
@@ -4263,9 +4288,10 @@ window.addEventListener('error', function(e){
   function acSendMessage(data){
     if(acIsBlocked(acCurrentThreadPhone)){ alert('Ou bloke moun sa a. Debloke l pou voye mesaj.'); return Promise.resolve(false); }
     const chatId = chatIdFor(acMyPhone, acCurrentThreadPhone);
+    const toPhone = acCurrentThreadPhone;
     const sendTimer = setTimeout(()=> acNotify('⏳ Mesaj la poko rive sou sèvè a. Verifye koneksyon entènèt ou.'), 8000);
     const sendP = ayitiChatsRef.child(chatId).child('messages').push({ from: acMyPhone, timestamp: Date.now(), ...data, ...(acReplyTo ? { replyTo: acReplyTo } : {}) })
-      .then(()=>{ clearTimeout(sendTimer); return true; })
+      .then(()=>{ clearTimeout(sendTimer); if(toPhone) ayitiInboxRef.child(toPhone).child(acMyPhone).set(Date.now()).catch(()=>{}); return true; })
       .catch((err)=>{ clearTimeout(sendTimer); alert('Mesaj la pa t voye: ' + (err.code || '') + ' — ' + err.message); return false; });
     acClearReply();
     if(acMyTypingRef) acMyTypingRef.set(false);
