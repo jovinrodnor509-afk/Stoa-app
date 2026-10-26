@@ -1485,6 +1485,7 @@ window.addEventListener('error', function(e){
   <div style="position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 28px);display:flex;justify-content:center;gap:14px;z-index:3">
     <button id="acCallMute" class="acc-btn" style="display:none">🎤</button>
     <button id="acCallCam" class="acc-btn" style="display:none">📹</button>
+    <button id="acCallFlip" class="acc-btn" style="display:none" title="Chanje kamera">🔄</button>
     <button id="acCallAccept" class="ac-call-accept" style="display:none">📞 Reponn</button>
     <button id="acCallHang" class="ac-call-decline">📵 Fini</button>
   </div>
@@ -4791,6 +4792,7 @@ window.addEventListener('error', function(e){
       document.getElementById('acCallAccept').style.display = opts.incoming ? 'inline-block' : 'none';
       document.getElementById('acCallMute').style.display = opts.incoming ? 'none' : 'inline-block';
       document.getElementById('acCallCam').style.display = (!opts.incoming && opts.video) ? 'inline-block' : 'none';
+      document.getElementById('acCallFlip').style.display = (!opts.incoming && opts.video) ? 'inline-block' : 'none';
     }
   }
   function acCallHideUI(){
@@ -4866,7 +4868,50 @@ window.addEventListener('error', function(e){
   function acAttachLocal(c){
     if(c.type !== 'video') return;
     const lv = document.getElementById('acLocalVideo');
+    lv.style.transform = 'scaleX(-1)';
     lv.srcObject = c.stream; lv.style.display = 'block';
+  }
+
+  // ---- Chanje kamera (devan <-> deyè) pandan apèl videyo ----
+  let acFlipBusy = false;
+  async function acFlipCamera(){
+    const c = acCall;
+    if(!c || c.type !== 'video' || !c.stream || !c.pc || acFlipBusy) return;
+    acFlipBusy = true;
+    const btn = document.getElementById('acCallFlip');
+    btn.style.opacity = '0.45';
+    const cur = c.facing || 'user';
+    const next = cur === 'user' ? 'environment' : 'user';
+    const old = c.stream.getVideoTracks()[0];
+    const wasOn = old ? old.enabled : true;
+    // Kèk telefòn pa kite 2 kamera louvri an menm tan: nou fèmen ansyen an anvan
+    if(old) old.stop();
+    let nt = null, used = next;
+    try{
+      const ns = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: next } } });
+      nt = ns.getVideoTracks()[0];
+    }catch(e){
+      try{
+        const ns2 = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: cur } } });
+        nt = ns2.getVideoTracks()[0]; used = cur;
+        acNotify('Pa t kapab chanje kamera a.');
+      }catch(e2){ acNotify('Kamera a pa disponib.'); }
+    }
+    try{
+      if(nt && acCall === c){
+        nt.enabled = wasOn;
+        const sender = c.pc.getSenders().find(s => s.track && s.track.kind === 'video');
+        if(sender) await sender.replaceTrack(nt);
+        if(old) c.stream.removeTrack(old);
+        c.stream.addTrack(nt);
+        c.facing = used;
+        const lv = document.getElementById('acLocalVideo');
+        lv.srcObject = null; lv.srcObject = c.stream;
+        lv.style.transform = used === 'user' ? 'scaleX(-1)' : 'none';
+      } else if(nt){ nt.stop(); }
+    }catch(e){ acNotify('Pa t kapab chanje kamera a.'); }
+    btn.style.opacity = '1';
+    acFlipBusy = false;
   }
 
   // ---- Moun k ap rele ----
@@ -4978,11 +5023,12 @@ window.addEventListener('error', function(e){
 
   // ---- Bouton yo ----
   document.addEventListener('click', (e) => {
-    const t = e.target.closest ? e.target.closest('#acCallBtn, #acCallAccept, #acCallHang, #acCallMute, #acCallCam') : null;
+    const t = e.target.closest ? e.target.closest('#acCallBtn, #acCallAccept, #acCallHang, #acCallMute, #acCallCam, #acCallFlip') : null;
     if(!t) return;
     if(t.id === 'acCallBtn'){ acCallMenu(); }
     else if(t.id === 'acCallAccept'){ acAcceptCall(); }
     else if(t.id === 'acCallHang'){ acDeclineOrHang(); }
+    else if(t.id === 'acCallFlip'){ acFlipCamera(); }
     else if(acCall && acCall.stream){
       const audio = t.id === 'acCallMute';
       const tracks = audio ? acCall.stream.getAudioTracks() : acCall.stream.getVideoTracks();
