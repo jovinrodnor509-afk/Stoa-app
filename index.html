@@ -967,6 +967,7 @@ window.addEventListener('error', function(e){
 .ac-fwd{font-size:11px;opacity:.7;margin-bottom:3px;font-style:italic}
 .ac-date-sep{text-align:center;font-size:11px;opacity:.7;margin:12px 0 6px}
 .ac-reply-quote{border-left:3px solid #c9a063;padding:4px 8px;margin-bottom:5px;font-size:12px;opacity:.85;background:rgba(255,255,255,.07);border-radius:4px;word-break:break-word}
+#acCallOverlay .acc-btn{width:54px;height:54px;border-radius:50%;border:none;background:rgba(255,255,255,.18);color:#fff;font-size:22px}
 #acReplyBar{display:flex;justify-content:space-between;gap:8px;padding:6px 12px;font-size:12px;background:#1f1f1f;border-top:1px solid #333;color:#ddd}
 #acReplyBar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #acActionSheet{position:fixed;left:0;right:0;bottom:0;z-index:99997;background:#1b1b1b;border-top:1px solid #444;padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;flex-direction:column;gap:6px}
@@ -1275,6 +1276,7 @@ window.addEventListener('error', function(e){
           <div class="ac-contact-name" id="acThreadName"></div>
           <div class="ac-thread-status" id="acThreadStatus"></div>
         </div>
+        <button class="ac-search-btn" id="acCallBtn" title="Rele">📞</button>
         <button class="ac-search-btn" id="acSearchToggle" title="Chèche nan mesaj yo">🔎</button>
         <button class="ac-search-btn" id="acThreadMenu" title="Plis">⋮</button>
       </div>
@@ -1322,9 +1324,16 @@ window.addEventListener('error', function(e){
     </div>
 
     <div class="about-contact" id="aboutContactDisplay" style="display:none;"></div>
-    <div style="opacity:.45;font-size:11px;text-align:center;margin:14px 0 4px;">STOA v2026.10.24-j</div>
+    <div style="opacity:.45;font-size:11px;text-align:center;margin:14px 0 4px;">STOA v2026.10.24-l</div>
 
     <div class="admin-only" style="display:none;margin-top:20px;">
+      <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
+        <div class="section-title" style="font-size:17px; margin-bottom:10px;">📞 Sèvè apèl (STUN/TURN)</div>
+        <div style="font-size:12px;color:var(--parchment-dim);margin-bottom:8px;">Pou apèl yo travay sou tout rezo mobil, mete yon sèvè TURN (JSON). Kite vid pou itilize STUN default.</div>
+        <textarea id="iceServersInput" rows="5" placeholder='[{"urls":"stun:stun.l.google.com:19302"},{"urls":"turn:ADRES:80","username":"...","credential":"..."}]' style="width:100%;background:var(--stone-dark);border:1px solid var(--stone-line);color:var(--parchment);padding:9px 10px;border-radius:6px;margin-bottom:8px;font-size:12px;"></textarea>
+        <button class="dl-btn" id="saveIceServers">Sove sèvè yo</button>
+        <div id="iceServersStatus" style="font-size:12px;margin-top:8px;"></div>
+      </div>
       <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
         <div class="section-title" style="font-size:17px; margin-bottom:10px;">⚠️ Rapò AyitiChat</div>
         <div id="reportsList" style="font-size:13px;">Pa gen rapò.</div>
@@ -1454,6 +1463,25 @@ window.addEventListener('error', function(e){
 </div>
 
 <footer>STOA — kreye pa Jovin Rodnor</footer>
+
+<!-- Apèl vokal / videyo -->
+<div id="acCallOverlay" class="ac-call-overlay" style="display:none;padding:0;">
+  <video id="acRemoteVideo" autoplay playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;display:none"></video>
+  <video id="acLocalVideo" autoplay playsinline muted style="position:absolute;top:calc(env(safe-area-inset-top,0px) + 44px);right:12px;width:96px;height:128px;object-fit:cover;border-radius:10px;border:2px solid #c9a063;background:#000;display:none;z-index:2;transform:scaleX(-1)"></video>
+  <audio id="acRemoteAudio" autoplay></audio>
+  <div id="acCallChip" style="position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);left:0;right:0;text-align:center;z-index:2;color:#fff;font-size:14px;text-shadow:0 1px 4px #000"></div>
+  <div id="acCallInfo" class="ac-call-card" style="position:relative;z-index:1">
+    <img class="ac-call-photo ac-call-ring" id="acCallPhoto" src="">
+    <div class="ac-call-name" id="acCallName"></div>
+    <div class="ac-call-sub" id="acCallStatus"></div>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 28px);display:flex;justify-content:center;gap:14px;z-index:3">
+    <button id="acCallMute" class="acc-btn" style="display:none">🎤</button>
+    <button id="acCallCam" class="acc-btn" style="display:none">📹</button>
+    <button id="acCallAccept" class="ac-call-accept" style="display:none">📞 Reponn</button>
+    <button id="acCallHang" class="ac-call-decline">📵 Fini</button>
+  </div>
+</div>
 
 <!-- Overlay pou wè yon pwofil (san modifye) -->
   <div class="ac-call-overlay" id="acProfileViewOverlay" style="display:none;">
@@ -3102,6 +3130,18 @@ window.addEventListener('error', function(e){
       .catch(err => { st.textContent = 'Erè: ' + err.message; });
   });
 
+  document.addEventListener('click', (e) => {
+    if(!e.target.closest || !e.target.closest('#saveIceServers') || !isAdmin) return;
+    const st = document.getElementById('iceServersStatus');
+    const raw = document.getElementById('iceServersInput').value.trim();
+    if(raw){
+      try{ const a = JSON.parse(raw); if(!Array.isArray(a) || !a.length) throw new Error('Dwe yon lis'); }
+      catch(err){ st.textContent = 'JSON pa bon: ' + err.message; return; }
+    }
+    db.ref('settings/iceServers').set(raw).then(()=>{ st.textContent = raw ? '✓ Sèvè yo sove.' : '✓ Retounen sou STUN default.'; })
+      .catch(err => { st.textContent = 'Erè: ' + err.message; });
+  });
+
   // ---- Admin: peman an atant (sèlman admin konfime) ----
   const pendingRef = db.ref('pendingPurchases');
   function renderPending(data){
@@ -3691,6 +3731,17 @@ window.addEventListener('error', function(e){
     }).catch(()=>{});
   }
 
+  function acGetCachedProfile(){
+    try{ const p = JSON.parse(localStorage.getItem('stoa_ac_profile') || 'null'); return (p && p.phone) ? p : null; }
+    catch(e){ return null; }
+  }
+  function acCacheProfile(me){
+    try{ localStorage.setItem('stoa_ac_profile', JSON.stringify({ firstName: me.firstName || '', lastName: me.lastName || '', phone: me.phone, photo: me.photo || '' })); }catch(e){}
+  }
+  function acPatchCachedProfile(patch){
+    const c = acGetCachedProfile(); if(c) acCacheProfile({ ...c, ...patch });
+  }
+
   function acShowSetup(prefill){
     document.getElementById('acSetupWrap').style.display = 'block';
     document.getElementById('acMainWrap').style.display = 'none';
@@ -3717,6 +3768,18 @@ window.addEventListener('error', function(e){
     }, ()=> alert('Pa t kapab trete foto a.'));
   });
 
+  // Si le numéro existe déjà: remplir nom + photo automatiquement
+  document.getElementById('acPhone').addEventListener('change', ()=>{
+    const ph = normalizePhone(document.getElementById('acPhone').value);
+    if(ph.length < 8) return;
+    ayitiUsersRef.child(ph).once('value').then(snap => {
+      const ex = snap.val();
+      if(!ex) return;
+      if(!document.getElementById('acFirstName').value.trim()) acShowSetup(ex);
+      acNotify('✅ Nou jwenn pwofil ou. Klike KREYE PWOFIL pou kontinye.');
+    }).catch(()=>{});
+  });
+
   document.getElementById('acSaveProfile').addEventListener('click', ()=>{
     const firstNameIn = document.getElementById('acFirstName').value.trim();
     const lastNameIn = document.getElementById('acLastName').value.trim();
@@ -3736,6 +3799,7 @@ window.addEventListener('error', function(e){
       return ayitiUsersRef.child(phone).set(profile).then(()=>{
         acMyPhone = phone;
         localStorage.setItem('stoa_ac_phone', phone);
+        acCacheProfile(profile);
         if(window.OneSignalDeferred){
           window.OneSignalDeferred.push(async (OneSignal)=>{ try{ await OneSignal.login(phone); }catch(e){} });
         }
@@ -3755,6 +3819,7 @@ window.addEventListener('error', function(e){
     if(!file || !acMyPhone) return;
     resizeImageToBase64(file, 300, (base64)=>{
       ayitiUsersRef.child(acMyPhone).update({ photo: base64 }).then(()=>{
+        acPatchCachedProfile({ photo: base64 });
         document.getElementById('acMyPhoto').src = base64;
         acShowSaveToast('Foto pwofil ou chanje!');
       });
@@ -3847,19 +3912,33 @@ window.addEventListener('error', function(e){
   function acRenderMain(){
     if(!acMyPhone){ acShowSetup(); return; }
     acWatchInbox();
+    if(typeof acWatchCalls === 'function') acWatchCalls();
     document.getElementById('acSetupWrap').style.display = 'none';
     document.getElementById('acMainWrap').style.display = 'block';
     document.getElementById('acThreadWrap').style.display = 'none';
-    ayitiUsersRef.child(acMyPhone).once('value').then(snap=>{
-      const me = snap.val();
-      if(!me){ acShowSetup(); return; }
+    const cached = acGetCachedProfile();
+    const fillMe = (me) => {
       document.getElementById('acMyPhoto').src = me.photo || 'icon-192.png';
       document.getElementById('acMyName').textContent = [me.firstName, me.lastName].filter(Boolean).join(' ');
       document.getElementById('acMyPhone').textContent = '+' + me.phone;
       if(window.OneSignalDeferred){
         window.OneSignalDeferred.push(async (OneSignal)=>{ try{ await OneSignal.login(me.phone); }catch(e){} });
       }
-    });
+    };
+    if(cached) fillMe(cached);
+    ayitiUsersRef.child(acMyPhone).once('value').then(snap=>{
+      const me = snap.val();
+      if(!me){
+        if(cached){
+          // pwofil la disparèt sou sèvè a: nou retabli l otomatikman, moun nan pa bezwen reantre anyen
+          ayitiUsersRef.child(acMyPhone).set({ ...cached, updatedAt: new Date().toISOString() }).catch(()=>{});
+          return;
+        }
+        acShowSetup({ phone: acMyPhone });
+        return;
+      }
+      fillMe(me); acCacheProfile(me);
+    }).catch(()=>{ if(!cached) acNotify('Pa t kapab chaje pwofil ou. Verifye koneksyon ou.'); });
     acLoadContacts();
     acLoadStatuses();
     acSetupPresence();
@@ -4664,6 +4743,269 @@ window.addEventListener('error', function(e){
       if(acMyPhone) acRenderMain(); else acShowSetup();
     });
   }
+  // ==================== APÈL VOKAL / VIDEYO (WebRTC) ====================
+  const ayitiCallsRef = db.ref('ayitiCalls');
+  const AC_CALL_RING_MS = 45000;
+  let acCall = null;
+  let acCallsWatching = null;
+  let acServerOffset = 0;
+  let acIceServers = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
+  db.ref('.info/serverTimeOffset').on('value', s => { acServerOffset = s.val() || 0; }, ()=>{});
+  db.ref('settings/iceServers').on('value', (snap) => {
+    try{
+      const v = snap.val();
+      const arr = typeof v === 'string' ? JSON.parse(v) : v;
+      if(Array.isArray(arr) && arr.length) acIceServers = arr;
+    }catch(e){}
+  }, ()=>{});
+
+  // ---- Son sonnri (WebAudio, san fichye) ----
+  let acRingCtx = null, acRingTimer = null;
+  function acRing(on){
+    clearInterval(acRingTimer); acRingTimer = null;
+    if(!on){ try{ navigator.vibrate && navigator.vibrate(0); }catch(e){} return; }
+    const beep = () => {
+      try{
+        acRingCtx = acRingCtx || new (window.AudioContext || window.webkitAudioContext)();
+        if(acRingCtx.state === 'suspended') acRingCtx.resume();
+        [0, 0.5].forEach(off => {
+          const o = acRingCtx.createOscillator(), g = acRingCtx.createGain();
+          o.frequency.value = 440 + (off ? 40 : 0); g.gain.value = 0.15;
+          o.connect(g); g.connect(acRingCtx.destination);
+          o.start(acRingCtx.currentTime + off); o.stop(acRingCtx.currentTime + off + 0.35);
+        });
+        navigator.vibrate && navigator.vibrate([300, 200, 300]);
+      }catch(e){}
+    };
+    beep(); acRingTimer = setInterval(beep, 2500);
+  }
+
+  // ---- Ekran apèl ----
+  function acCallUI(opts){
+    const ov = document.getElementById('acCallOverlay');
+    ov.style.display = 'flex';
+    if(opts.name != null) document.getElementById('acCallName').textContent = opts.name;
+    if(opts.photo != null) document.getElementById('acCallPhoto').src = opts.photo || 'icon-192.png';
+    if(opts.status != null){ document.getElementById('acCallStatus').textContent = opts.status; document.getElementById('acCallChip').textContent = opts.status; }
+    if(opts.incoming != null){
+      document.getElementById('acCallAccept').style.display = opts.incoming ? 'inline-block' : 'none';
+      document.getElementById('acCallMute').style.display = opts.incoming ? 'none' : 'inline-block';
+      document.getElementById('acCallCam').style.display = (!opts.incoming && opts.video) ? 'inline-block' : 'none';
+    }
+  }
+  function acCallHideUI(){
+    document.getElementById('acCallOverlay').style.display = 'none';
+    ['acRemoteVideo','acLocalVideo'].forEach(id => { const v = document.getElementById(id); v.srcObject = null; v.style.display = 'none'; });
+    document.getElementById('acRemoteAudio').srcObject = null;
+    document.getElementById('acCallInfo').style.display = 'flex';
+  }
+
+  // ---- Fini apèl la, netwaye tout ----
+  function acEndCall(msg, notifyRemote){
+    const c = acCall; if(!c) return;
+    acCall = null;
+    acRing(false);
+    clearTimeout(c.ringTimer); clearInterval(c.durTimer); clearTimeout(c.dropTimer);
+    (c.offs || []).forEach(f => { try{ f(); }catch(e){} });
+    try{ c.pc && c.pc.close(); }catch(e){}
+    try{ c.stream && c.stream.getTracks().forEach(t => t.stop()); }catch(e){}
+    acCallHideUI();
+    if(notifyRemote){ try{ c.ref.update({ status: 'ended' }); }catch(e){} }
+    setTimeout(() => { try{ c.ref.remove(); }catch(e){} }, 6000);
+    if(msg) acNotify(msg);
+  }
+
+  // ---- PeerConnection komen ----
+  function acMakePC(c, role){
+    const pc = new RTCPeerConnection({ iceServers: acIceServers });
+    c.pc = pc;
+    c.stream.getTracks().forEach(t => pc.addTrack(t, c.stream));
+    pc.ontrack = (e) => {
+      const st = (e.streams && e.streams[0]) ? e.streams[0] : null;
+      if(!st) return;
+      if(c.type === 'video'){
+        const rv = document.getElementById('acRemoteVideo');
+        rv.srcObject = st; rv.style.display = 'block';
+        document.getElementById('acCallInfo').style.display = 'none';
+      } else {
+        document.getElementById('acRemoteAudio').srcObject = st;
+      }
+    };
+    pc.onicecandidate = (e) => { if(e.candidate && acCall === c) c.ref.child('cand_' + role).push(e.candidate.toJSON()); };
+    pc.onconnectionstatechange = () => {
+      if(acCall !== c) return;
+      const st = pc.connectionState;
+      if(st === 'connected'){
+        clearTimeout(c.dropTimer);
+        if(!c.durTimer){
+          c.t0 = Date.now();
+          c.durTimer = setInterval(() => {
+            const sec = Math.floor((Date.now() - c.t0) / 1000);
+            acCallUI({ status: String(Math.floor(sec / 60)).padStart(2,'0') + ':' + String(sec % 60).padStart(2,'0') });
+          }, 1000);
+        }
+      } else if(st === 'failed'){
+        acEndCall('❌ Koneksyon an echwe (rezo a ka bloke apèl yo).', true);
+      } else if(st === 'disconnected'){
+        clearTimeout(c.dropTimer);
+        c.dropTimer = setTimeout(() => { if(acCall === c) acEndCall('Koneksyon an koupe.', true); }, 10000);
+      }
+    };
+    return pc;
+  }
+  function acListenCandidates(c, otherRole){
+    const r = c.ref.child('cand_' + otherRole);
+    const cb = r.on('child_added', (s) => {
+      try{ c.pc.addIceCandidate(new RTCIceCandidate(s.val())).catch(()=>{}); }catch(e){}
+    });
+    c.offs.push(() => r.off('child_added', cb));
+  }
+  async function acGetMedia(type){
+    return navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' ? { facingMode: 'user' } : false });
+  }
+  function acAttachLocal(c){
+    if(c.type !== 'video') return;
+    const lv = document.getElementById('acLocalVideo');
+    lv.srcObject = c.stream; lv.style.display = 'block';
+  }
+
+  // ---- Moun k ap rele ----
+  async function acStartCall(type){
+    if(acCall){ acNotify('Ou deja nan yon apèl.'); return; }
+    const peer = acCurrentThreadPhone;
+    if(!peer || !acMyPhone) return;
+    if(acIsBlocked(peer)){ alert('Ou bloke moun sa a. Debloke l pou rele l.'); return; }
+    if(!window.RTCPeerConnection || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      alert('Navigatè ou a pa sipòte apèl. Eseye Chrome.'); return;
+    }
+    let stream;
+    try{ stream = await acGetMedia(type); }
+    catch(e){ alert('Pa t kapab jwenn mikwofòn' + (type === 'video' ? ' oswa kamera' : '') + '. Pèmèt aksè a nan paramèt navigatè a.'); return; }
+    const name = document.getElementById('acThreadName').textContent;
+    const photo = document.getElementById('acThreadPhoto').src;
+    const ref = ayitiCallsRef.child(peer).push();
+    const c = acCall = { id: ref.key, role: 'caller', type, peer, ref, stream, offs: [], answered: false };
+    acCallUI({ name, photo, status: 'Ap sonnen…', incoming: false, video: type === 'video' });
+    acAttachLocal(c);
+    try{
+      const pc = acMakePC(c, 'caller');
+      const offer = await pc.createOffer();
+      ref.set({ from: acMyPhone, type, offer: { type: offer.type, sdp: offer.sdp }, status: 'ringing', ts: firebase.database.ServerValue.TIMESTAMP });
+      await pc.setLocalDescription(offer);
+    }catch(e){ acEndCall('Pa t kapab kòmanse apèl la.', false); return; }
+    const cb = ref.on('value', async (snap) => {
+      if(acCall !== c) return;
+      const v = snap.val();
+      if(!v) return;
+      if(v.status === 'accepted' && v.answer && !c.answered){
+        c.answered = true;
+        clearTimeout(c.ringTimer);
+        acCallUI({ status: 'Ap konekte…' });
+        try{ await c.pc.setRemoteDescription(v.answer); acListenCandidates(c, 'callee'); }
+        catch(e){ acEndCall('Pa t kapab konekte.', true); }
+      } else if(v.status === 'declined'){ acEndCall('📵 Moun nan refize apèl la.', false); }
+      else if(v.status === 'busy'){ acEndCall('📵 Moun nan okipe nan yon lòt apèl.', false); }
+      else if(v.status === 'ended'){ acEndCall('Apèl la fini.', false); }
+    });
+    c.offs.push(() => ref.off('value', cb));
+    c.ringTimer = setTimeout(() => {
+      if(acCall !== c || c.answered) return;
+      ref.update({ status: 'missed' });
+      ayitiChatsRef.child(chatIdFor(acMyPhone, peer)).child('messages')
+        .push({ from: acMyPhone, timestamp: Date.now(), text: (type === 'video' ? '📹 Apèl videyo san repons' : '📞 Apèl vokal san repons') });
+      ayitiInboxRef.child(peer).child(acMyPhone).set(Date.now()).catch(()=>{});
+      acEndCall('Pa gen repons.', false);
+    }, AC_CALL_RING_MS);
+    try{ sendPrivatePush(peer, (type === 'video' ? '📹 Apèl videyo' : '📞 Apèl vokal'), 'Louvri STOA pou reponn.'); }catch(e){}
+  }
+
+  // ---- Moun k ap resevwa apèl ----
+  function acWatchCalls(){
+    if(!acMyPhone || acCallsWatching === acMyPhone) return;
+    acCallsWatching = acMyPhone;
+    ayitiCallsRef.child(acMyPhone).on('child_added', (snap) => { acIncoming(snap.key, snap.val(), snap.ref); }, ()=>{});
+  }
+  async function acIncoming(id, v, ref){
+    if(!v || v.status !== 'ringing' || !v.offer || v.from === acMyPhone) return;
+    if((Date.now() + acServerOffset) - v.ts > AC_CALL_RING_MS) return;
+    if(acIsBlocked(v.from)){ ref.update({ status: 'declined' }); return; }
+    if(acCall){ ref.update({ status: 'busy' }); return; }
+    const c = acCall = { id, role: 'callee', type: v.type === 'video' ? 'video' : 'voice', peer: v.from, ref, offer: v.offer, offs: [] };
+    let name = '+' + v.from, photo = '';
+    try{
+      const u = (await ayitiUsersRef.child(v.from).once('value')).val();
+      if(u){ name = [u.firstName, u.lastName].filter(Boolean).join(' ') || name; photo = u.photo || ''; }
+    }catch(e){}
+    if(acCall !== c) return;
+    acCallUI({ name, photo, status: c.type === 'video' ? '📹 Apèl videyo k ap rantre…' : '📞 Apèl vokal k ap rantre…', incoming: true });
+    acRing(true);
+    const cb = ref.on('value', (snap) => {
+      if(acCall !== c) return;
+      const s = snap.val();
+      if(!s || s.status === 'ended' || s.status === 'missed'){ acEndCall(c.stream ? 'Apèl la fini.' : '📵 Apèl la rate.', false); }
+      else if(!c.stream && (s.status === 'accepted' || s.status === 'declined' || s.status === 'busy')){ acEndCall(null, false); }
+    });
+    c.offs.push(() => ref.off('value', cb));
+    c.ringTimer = setTimeout(() => { if(acCall === c && !c.stream) acEndCall('📵 Apèl la rate.', false); }, AC_CALL_RING_MS);
+  }
+  async function acAcceptCall(){
+    const c = acCall;
+    if(!c || c.role !== 'callee' || c.stream) return;
+    acRing(false);
+    try{ c.stream = await acGetMedia(c.type); }
+    catch(e){
+      alert('Pa t kapab jwenn mikwofòn' + (c.type === 'video' ? ' oswa kamera' : '') + '. Pèmèt aksè a nan paramèt navigatè a.');
+      c.ref.update({ status: 'declined' }); acEndCall(null, false); return;
+    }
+    clearTimeout(c.ringTimer);
+    acCallUI({ status: 'Ap konekte…', incoming: false, video: c.type === 'video' });
+    acAttachLocal(c);
+    try{
+      const pc = acMakePC(c, 'callee');
+      await pc.setRemoteDescription(c.offer);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await c.ref.update({ answer: { type: answer.type, sdp: answer.sdp }, status: 'accepted' });
+      acListenCandidates(c, 'caller');
+    }catch(e){ acEndCall('Pa t kapab konekte.', true); }
+  }
+  function acDeclineOrHang(){
+    const c = acCall; if(!c) return;
+    if(c.role === 'callee' && !c.stream){ c.ref.update({ status: 'declined' }); acEndCall(null, false); return; }
+    if(c.role === 'caller' && !c.answered){ c.ref.update({ status: 'ended' }); acEndCall(null, false); return; }
+    acEndCall('Apèl la fini.', true);
+  }
+
+  // ---- Bouton yo ----
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest ? e.target.closest('#acCallBtn, #acCallAccept, #acCallHang, #acCallMute, #acCallCam') : null;
+    if(!t) return;
+    if(t.id === 'acCallBtn'){ acCallMenu(); }
+    else if(t.id === 'acCallAccept'){ acAcceptCall(); }
+    else if(t.id === 'acCallHang'){ acDeclineOrHang(); }
+    else if(acCall && acCall.stream){
+      const audio = t.id === 'acCallMute';
+      const tracks = audio ? acCall.stream.getAudioTracks() : acCall.stream.getVideoTracks();
+      const on = tracks.length ? !tracks[0].enabled : true;
+      tracks.forEach(tr => { tr.enabled = on; });
+      t.style.opacity = on ? '1' : '0.45';
+      t.textContent = audio ? (on ? '🎤' : '🔇') : (on ? '📹' : '🚫');
+    }
+  });
+  function acCallMenu(){
+    const old = document.getElementById('acActionSheet'); if(old) old.remove();
+    const sheet = document.createElement('div'); sheet.id = 'acActionSheet';
+    sheet.innerHTML = '<button data-call="voice">🎤 Apèl vokal</button><button data-call="video">📹 Apèl videyo</button><button data-call="">Anile</button>';
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', (e) => {
+      const k = e.target.dataset && e.target.dataset.call;
+      if(k === undefined) return;
+      sheet.remove();
+      if(k) acStartCall(k);
+    });
+  }
+  acWatchCalls();
+
   // ==================== FEN AYITICHAT ====================
 </script>
 </body>
