@@ -1324,9 +1324,16 @@ window.addEventListener('error', function(e){
     </div>
 
     <div class="about-contact" id="aboutContactDisplay" style="display:none;"></div>
-    <div style="opacity:.45;font-size:11px;text-align:center;margin:14px 0 4px;">STOA v2026.10.24-l</div>
+    <div style="opacity:.45;font-size:11px;text-align:center;margin:14px 0 4px;">STOA v2026.10.24-m</div>
 
     <div class="admin-only" style="display:none;margin-top:20px;">
+      <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
+        <div class="section-title" style="font-size:17px; margin-bottom:10px;">🔔 Sèvè notifikasyon (Cloudflare Worker)</div>
+        <div style="font-size:12px;color:var(--parchment-dim);margin-bottom:8px;">Kole adrès Worker la (https://stoa-push.…workers.dev). San li, pa gen notifikasyon.</div>
+        <input type="text" id="pushUrlInput" placeholder="https://stoa-push.xxxx.workers.dev" style="width:100%;background:var(--stone-dark);border:1px solid var(--stone-line);color:var(--parchment);padding:9px 10px;border-radius:6px;margin-bottom:8px;">
+        <button class="dl-btn" id="savePushUrl">Sove adrès la</button>
+        <div id="pushUrlStatus" style="font-size:12px;margin-top:8px;"></div>
+      </div>
       <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
         <div class="section-title" style="font-size:17px; margin-bottom:10px;">📞 Sèvè apèl (STUN/TURN)</div>
         <div style="font-size:12px;color:var(--parchment-dim);margin-bottom:8px;">Pou apèl yo travay sou tout rezo mobil, mete yon sèvè TURN (JSON). Kite vid pou itilize STUN default.</div>
@@ -1779,23 +1786,22 @@ window.addEventListener('error', function(e){
   const tracksRef = db.ref('tracks');
 
   const ONESIGNAL_APP_ID = "332143af-0e0c-4979-b52c-7f0bda021938";
-  const ONESIGNAL_REST_KEY = "os_v2_app_gmquhlyobrextnjmp4f5uaqzhctlcbw77yweswmanta3z2hoiddbapwjo2muu46mu6ol2wovrqyvbwjh4btvxgyxbx6oxg5hz32fyha";
-  function sendPushNotification(title, message){
-    fetch('https://onesignal.com/api/v1/notifications', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Authorization': `Key ${ONESIGNAL_REST_KEY}`
-      },
-      body: JSON.stringify({
-        app_id: ONESIGNAL_APP_ID,
-        included_segments: ['Subscribed Users'],
-        headings: { en: title },
-        contents: { en: message },
-        url: 'https://jovinrodnor509-afk.github.io/Stoa-app/'
-      })
-    }).catch(()=>{ /* silans si notifikasyon pa reyisi voye, sa pa dwe bloke anrejistreman kontni an */ });
+  // ---- Notifikasyon: voye pa yon Cloudflare Worker (kle sekrè a pa nan paj la ankò) ----
+  let STOA_PUSH_URL = '';
+  db.ref('settings/pushUrl').on('value', (snap) => { STOA_PUSH_URL = String(snap.val() || '').trim(); }, ()=>{});
+  async function stoaPush(payload, asAdmin){
+    if(!STOA_PUSH_URL) return;
+    try{
+      const headers = { 'Content-Type': 'application/json' };
+      if(asAdmin){
+        const u = firebase.auth().currentUser;
+        if(!u || u.isAnonymous) return;
+        headers['Authorization'] = 'Bearer ' + await u.getIdToken();
+      }
+      fetch(STOA_PUSH_URL, { method: 'POST', headers, body: JSON.stringify(payload) }).catch(()=>{});
+    }catch(e){}
   }
+  function sendPushNotification(title, message){ stoaPush({ type: 'broadcast', title, message }, true); }
   tracksRef.on('value', (snapshot) => {
     const data = snapshot.val() || {};
     tracks = Object.keys(data).map(key => ({ id: key, ...data[key] }));
@@ -3130,6 +3136,18 @@ window.addEventListener('error', function(e){
       .catch(err => { st.textContent = 'Erè: ' + err.message; });
   });
 
+  db.ref('settings/pushUrl').on('value', (snap) => {
+    const inp = document.getElementById('pushUrlInput');
+    if(inp && document.activeElement !== inp) inp.value = snap.val() || '';
+  }, ()=>{});
+  document.addEventListener('click', (e) => {
+    if(!e.target.closest || !e.target.closest('#savePushUrl') || !isAdmin) return;
+    const st = document.getElementById('pushUrlStatus');
+    const v = document.getElementById('pushUrlInput').value.trim();
+    if(v && !/^https:\/\/[\w.-]+\.workers\.dev\/?$/.test(v)){ st.textContent = 'Adrès la dwe sanble: https://stoa-push.xxxx.workers.dev'; return; }
+    db.ref('settings/pushUrl').set(v).then(()=>{ st.textContent = v ? '✓ Adrès la sove.' : '✓ Notifikasyon dezaktive.'; })
+      .catch(err => { st.textContent = 'Erè: ' + err.message; });
+  });
   document.addEventListener('click', (e) => {
     if(!e.target.closest || !e.target.closest('#saveIceServers') || !isAdmin) return;
     const st = document.getElementById('iceServersStatus');
@@ -3713,24 +3731,6 @@ window.addEventListener('error', function(e){
   let acMediaRecorder = null;
   let acRecordedChunks = [];
 
-  function sendPrivatePush(toPhone, title, message){
-    fetch('https://onesignal.com/api/v1/notifications', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Authorization': `Key ${ONESIGNAL_REST_KEY}`
-      },
-      body: JSON.stringify({
-        app_id: ONESIGNAL_APP_ID,
-        include_aliases: { external_id: [toPhone] },
-        target_channel: 'push',
-        headings: { en: title },
-        contents: { en: message },
-        url: 'https://jovinrodnor509-afk.github.io/Stoa-app/'
-      })
-    }).catch(()=>{});
-  }
-
   function acGetCachedProfile(){
     try{ const p = JSON.parse(localStorage.getItem('stoa_ac_profile') || 'null'); return (p && p.phone) ? p : null; }
     catch(e){ return null; }
@@ -4154,7 +4154,7 @@ window.addEventListener('error', function(e){
     ayitiUsersRef.child(acMyPhone).once('value').then(snap=>{
       const me = snap.val();
       const name = me ? [me.firstName, me.lastName].filter(Boolean).join(' ') : 'Yon moun';
-      sendPrivatePush(phone, `💬 ${name}`, `Reponn estati w la: ${text}`);
+      stoaPush({ type: 'message', from: acMyPhone, to: phone });
     });
     input.value = '';
     lightboxOverlay.classList.remove('open');
@@ -4381,7 +4381,7 @@ window.addEventListener('error', function(e){
       let preview = data.text || 'Voye yon mesaj vokal';
       if(data.sticker) preview = `${data.sticker} Voye yon stiker`;
       if(data.file) preview = (data.fileType || '').startsWith('image/') ? '📷 Voye yon foto' : `📄 Voye yon fichye: ${data.fileName || ''}`;
-      sendPrivatePush(acCurrentThreadPhone, `💬 ${name}`, preview);
+      stoaPush({ type: 'message', from: acMyPhone, to: toPhone });
     }).catch(()=>{});
     return sendP;
   }
@@ -4427,7 +4427,7 @@ window.addEventListener('error', function(e){
       const copy = { from: acMyPhone, timestamp: Date.now(), forwarded: true };
       ['text','sticker','file','fileName','fileType','fileSize','voice'].forEach(k => { if(m[k] !== undefined && m[k] !== null) copy[k] = m[k]; });
       ayitiChatsRef.child(chatIdFor(acMyPhone, ph)).child('messages').push(copy)
-        .then(() => { acNotify('✅ Mesaj la transfere.'); sendPrivatePush(ph, '💬 Nouvo mesaj', acSnippet(m) || 'Mesaj transfere'); })
+        .then(() => { acNotify('✅ Mesaj la transfere.'); stoaPush({ type: 'message', from: acMyPhone, to: ph }); })
         .catch(err => alert('Pa t kapab transfere: ' + err.message));
     });
   }
@@ -4916,7 +4916,7 @@ window.addEventListener('error', function(e){
       ayitiInboxRef.child(peer).child(acMyPhone).set(Date.now()).catch(()=>{});
       acEndCall('Pa gen repons.', false);
     }, AC_CALL_RING_MS);
-    try{ sendPrivatePush(peer, (type === 'video' ? '📹 Apèl videyo' : '📞 Apèl vokal'), 'Louvri STOA pou reponn.'); }catch(e){}
+    try{ stoaPush({ type: 'call', from: acMyPhone, to: peer, callId: ref.key, callType: type }); }catch(e){}
   }
 
   // ---- Moun k ap resevwa apèl ----
