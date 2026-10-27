@@ -627,12 +627,28 @@ window.addEventListener('error', function(e){
   }
   .register-banner.collapsed .register-banner-toggle{ display:block; }
   /* Miray enskripsyon: san enskripsyon pa gen aksè (sof admin) */
+  .wall-slides{ display:none; }
   html.reg-wall #registerBanner{
     position:fixed; inset:0; margin:0; border:none; border-radius:0; z-index:100000;
-    background: var(--stone-dark); overflow:auto; display:flex; flex-direction:column; justify-content:center;
-    padding: calc(env(safe-area-inset-top,0px) + 24px) 24px calc(env(safe-area-inset-bottom,0px) + 24px);
+    background:#0d0b09; overflow-y:auto; overflow-x:hidden; display:flex; flex-direction:column; justify-content:flex-start;
+    padding: calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 16px);
   }
-  html.reg-wall #registerBannerContent{ width:100%; max-width:420px; margin:0 auto; }
+  html.reg-wall .wall-slides{ display:block; position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  .wall-slide{ position:absolute; inset:0; animation: wallFade 16s ease-in-out infinite; }
+  .wall-slide:nth-child(2){ animation-delay:-8s; }
+  .wall-bg{ position:absolute; inset:-30px; background-image:var(--img); background-size:cover; background-position:center; filter:blur(24px) brightness(.5); }
+  .wall-fg{ position:absolute; inset:0; background-image:var(--img); background-size:contain; background-position:center top; background-repeat:no-repeat; }
+  .wall-shade{ position:absolute; inset:0; background:linear-gradient(to top, rgba(10,8,6,.96) 0%, rgba(10,8,6,.78) 34%, rgba(10,8,6,.15) 62%, rgba(10,8,6,0) 100%); }
+  @keyframes wallFade{ 0%,44%{opacity:1} 50%,94%{opacity:0} 100%{opacity:1} }
+  @media (prefers-reduced-motion: reduce){
+    .wall-slide{ animation:none; opacity:0; }
+    .wall-slide:nth-child(1){ opacity:1; }
+  }
+  html.reg-wall #registerBannerContent{
+    position:relative; z-index:2; width:100%; max-width:420px; margin:auto auto 0; padding:20px 18px;
+    background:rgba(16,14,11,.72); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+    border:1px solid rgba(201,160,99,.35); border-radius:18px; box-shadow:0 10px 40px rgba(0,0,0,.55);
+  }
   html.reg-wall #registerBannerToggle{ display:none !important; }
   html.reg-wall #adminFab{ z-index:100001; }
   html.reg-wall #adminLoginModal{ z-index:100002; }
@@ -1041,6 +1057,11 @@ window.addEventListener('error', function(e){
 </div>
 
 <div class="register-banner" id="registerBanner">
+  <div class="wall-slides" aria-hidden="true">
+    <div class="wall-slide" style="--img:url('stoa-wisdom-1.jpg')"><div class="wall-bg"></div><div class="wall-fg"></div></div>
+    <div class="wall-slide" style="--img:url('stoa-wisdom-2.jpg')"><div class="wall-bg"></div><div class="wall-fg"></div></div>
+    <div class="wall-shade"></div>
+  </div>
   <div class="register-banner-content" id="registerBannerContent">
     <h3>Rete Konekte ak STOA</h3>
     <p>Pou antre nan STOA, enskri (gratis, 10 segond). Mete non ou ak nimewo WhatsApp ou oswa imèl ou.</p>
