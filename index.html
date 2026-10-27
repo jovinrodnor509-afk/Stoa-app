@@ -1586,19 +1586,24 @@ window.addEventListener('error', function(e){
   function setBgLayer(layer, url){
     layer.style.backgroundImage = `linear-gradient(rgba(20,19,17,0.55), rgba(20,19,17,0.75)), url('${url}')`;
   }
-  setBgLayer(heroBgA, heroBgImages[0]);
+  heroBgA.style.opacity = 1; // foto lokal (bg-hero.jpg) parèt tousuite, san tann 5 segond
   function showBg(i){
     const url = heroBgImages[i % heroBgImages.length];
-    if(bgToggle){
-      setBgLayer(heroBgB, url);
-      heroBgB.style.opacity = 1;
-      heroBgA.style.opacity = 0;
-    } else {
-      setBgLayer(heroBgA, url);
-      heroBgA.style.opacity = 1;
-      heroBgB.style.opacity = 0;
-    }
-    bgToggle = !bgToggle;
+    const probe = new Image();
+    probe.onload = function(){
+      if(bgToggle){
+        setBgLayer(heroBgB, url);
+        heroBgB.style.opacity = 1;
+        heroBgA.style.opacity = 0;
+      } else {
+        setBgLayer(heroBgA, url);
+        heroBgA.style.opacity = 1;
+        heroBgB.style.opacity = 0;
+      }
+      bgToggle = !bgToggle;
+    };
+    probe.onerror = function(){}; // si foto ekstèn nan pa chaje, kenbe sa ki deja la (pa kite fon vid)
+    probe.src = url;
   }
 
   // ---- Hero rotating stoic quotes ----
