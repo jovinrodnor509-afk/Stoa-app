@@ -626,6 +626,16 @@ window.addEventListener('error', function(e){
     color: var(--bronze-bright); padding:4px 0;
   }
   .register-banner.collapsed .register-banner-toggle{ display:block; }
+  /* Miray enskripsyon: san enskripsyon pa gen aksè (sof admin) */
+  html.reg-wall #registerBanner{
+    position:fixed; inset:0; margin:0; border:none; border-radius:0; z-index:100000;
+    background: var(--stone-dark); overflow:auto; display:flex; flex-direction:column; justify-content:center;
+    padding: calc(env(safe-area-inset-top,0px) + 24px) 24px calc(env(safe-area-inset-bottom,0px) + 24px);
+  }
+  html.reg-wall #registerBannerContent{ width:100%; max-width:420px; margin:0 auto; }
+  html.reg-wall #registerBannerToggle{ display:none !important; }
+  html.reg-wall #adminFab{ z-index:100001; }
+  html.reg-wall #adminLoginModal{ z-index:100002; }
 
   /* STATS (admin only) */
   .stats-locked{ text-align:center; color: var(--parchment-dim); font-size:14px; padding: 40px 20px; font-style:italic; }
@@ -973,6 +983,7 @@ window.addEventListener('error', function(e){
 #acActionSheet{position:fixed;left:0;right:0;bottom:0;z-index:99997;background:#1b1b1b;border-top:1px solid #444;padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;flex-direction:column;gap:6px}
 #acActionSheet button{background:#2a2a2a;color:#eee;border:1px solid #444;border-radius:8px;padding:12px;font-size:15px;text-align:left}
 </style>
+<script>try{ if(localStorage.getItem('stoa_registered') !== '1') document.documentElement.classList.add('reg-wall'); }catch(e){ document.documentElement.classList.add('reg-wall'); }</script>
 </head>
 <body>
 
@@ -1032,7 +1043,7 @@ window.addEventListener('error', function(e){
 <div class="register-banner" id="registerBanner">
   <div class="register-banner-content" id="registerBannerContent">
     <h3>Rete Konekte ak STOA</h3>
-    <p>Koute demo yo gratis san kondisyon. Men pou telechaje mizik, gade foto/videyo an gran fòma, ak jwenn tout sa STOA ofri — enskri (gratis, 10 segond).</p>
+    <p>Pou antre nan STOA, enskri (gratis, 10 segond). Mete non ou ak nimewo WhatsApp ou oswa imèl ou.</p>
     <div class="register-form" id="registerForm">
       <input type="text" id="regName" placeholder="Non ou">
       <input type="tel" id="regWhatsapp" placeholder="Nimewo WhatsApp ou (egzanp: 509 1234 5678)">
@@ -2519,6 +2530,7 @@ window.addEventListener('error', function(e){
 
   function setAdminUI(active){
     isAdmin = active;
+    try{ applyRegWall(); }catch(e){}
     adminFab.classList.toggle('active', active);
     adminFab.textContent = active ? '🔓 Admin ✓' : '🔒 Admin';
     // Kache bouton Admin nèt yon fwa moun nan konekte kòm admin
@@ -3258,6 +3270,7 @@ window.addEventListener('error', function(e){
       btn.disabled = false; btn.textContent = oldLabel;
       localStorage.setItem('stoa_sub_key', key);
       isRegistered = true;
+      applyRegWall();
       localStorage.setItem('stoa_registered', '1');
       localStorage.setItem('stoa_name', name);
       document.getElementById('registerForm').classList.add('hide');
@@ -3290,6 +3303,9 @@ window.addEventListener('error', function(e){
     document.getElementById('notifBellWrap').style.display = 'block';
     document.getElementById('registerBanner').classList.add('collapsed');
   }
+
+  function applyRegWall(){ document.documentElement.classList.toggle('reg-wall', !isRegistered && !isAdmin); }
+  applyRegWall();
 
   // ---- Notifications: alert registered users about new tracks/photos/wisdom ----
   const notifBell = document.getElementById('notifBell');
@@ -3790,11 +3806,18 @@ window.addEventListener('error', function(e){
       const ex = snap.val();
       const firstName = firstNameIn || (ex && ex.firstName) || '';
       if(!firstName){ alert('Mete omwen prenon ou ak nimewo telefòn ou.'); return; }
+      const cu = firebase.auth().currentUser;
+      if(!cu){ alert('Tann yon ti moman (koneksyon an ap prepare), epi eseye ankò.'); return; }
+      if(ex && ex.uid && ex.uid !== cu.uid && cu.uid !== ADMIN_UID && !acIsExpired(ex)){
+        alert('Nimewo sa a deja lye ak yon lòt aparèy. Kontakte Jovin pou li debloke l.'); return;
+      }
       const profile = {
         firstName,
         lastName: lastNameIn || (ex && ex.lastName) || '',
         phone,
         photo: acPendingPhoto || (ex && ex.photo) || '',
+        uid: cu.uid,
+        renewedAt: firebase.database.ServerValue.TIMESTAMP,
         updatedAt: new Date().toISOString()
       };
       return ayitiUsersRef.child(phone).set(profile).then(()=>{
@@ -3910,6 +3933,47 @@ window.addEventListener('error', function(e){
   chatBox.addEventListener('mouseup', ()=> clearTimeout(acCommunityLongPressTimer));
   chatBox.addEventListener('mouseleave', ()=> clearTimeout(acCommunityLongPressTimer));
 
+  // ---- Lye nimewo a ak aparèy la (pou sèlman mèt nimewo a ka ekri/modifye/efase mesaj li) ----
+  function acWaitAuth(){
+    return new Promise((res) => {
+      const u = firebase.auth().currentUser;
+      if(u) return res(u);
+      let off = null;
+      const t = setTimeout(() => { try{ off && off(); }catch(e){} res(firebase.auth().currentUser); }, 10000);
+      off = firebase.auth().onAuthStateChanged((x) => { if(x){ clearTimeout(t); try{ off(); }catch(e){} res(x); } });
+    });
+  }
+  const AC_PROFILE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 jou
+  function acIsExpired(p){ return !!(p && p.renewedAt && (Date.now() - p.renewedAt) > AC_PROFILE_MAX_AGE_MS); }
+  function acShowExpired(me){
+    if(document.getElementById('acExpiredOverlay')) return;
+    const ov = document.createElement('div');
+    ov.id = 'acExpiredOverlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:#fff';
+    ov.innerHTML = '<div style="max-width:340px"><div style="font-size:40px;margin-bottom:10px">⏳</div>'
+      + '<div style="font-size:18px;font-weight:600;margin-bottom:8px">Pwofil AyitiChat ou ekspire</div>'
+      + '<div style="font-size:14px;opacity:.85;margin-bottom:18px">Pase 30 jou depi ou enskri. Mete pwofil ou ajou pou ou kontinye voye mesaj.</div>'
+      + '<button id="acExpiredBtn" style="padding:12px 22px;border:none;border-radius:10px;background:#c9a063;color:#1c1b19;font-size:15px;font-weight:600">🔄 Mete ajou</button></div>';
+    document.body.appendChild(ov);
+    document.getElementById('acExpiredBtn').addEventListener('click', () => {
+      ov.remove();
+      acShowSetup(me);
+    });
+  }
+  async function acClaimMyUid(){
+    try{
+      if(!acMyPhone) return;
+      const user = await acWaitAuth();
+      if(!user || user.uid === ADMIN_UID) return;
+      const p = (await ayitiUsersRef.child(acMyPhone).once('value')).val();
+      if(!p) return;
+      const pref = ayitiUsersRef.child(acMyPhone);
+      if(!p.uid){ await pref.update({ uid: user.uid, renewedAt: firebase.database.ServerValue.TIMESTAMP }); return; }
+      if(p.uid !== user.uid){ if(!acIsExpired(p)) acNotify('⚠️ Nimewo sa a lye ak yon lòt aparèy. Kontakte Jovin pou debloke l.'); return; }
+      if(!p.renewedAt){ await pref.update({ renewedAt: firebase.database.ServerValue.TIMESTAMP }); }
+    }catch(e){}
+  }
+
   function acRenderMain(){
     if(!acMyPhone){ acShowSetup(); return; }
     acWatchInbox();
@@ -3932,18 +3996,18 @@ window.addEventListener('error', function(e){
       if(!me){
         if(cached){
           // pwofil la disparèt sou sèvè a: nou retabli l otomatikman, moun nan pa bezwen reantre anyen
-          ayitiUsersRef.child(acMyPhone).set({ ...cached, updatedAt: new Date().toISOString() }).catch(()=>{});
+          { const cu = firebase.auth().currentUser; ayitiUsersRef.child(acMyPhone).set({ ...cached, ...(cu && cu.uid !== ADMIN_UID ? { uid: cu.uid } : {}), renewedAt: firebase.database.ServerValue.TIMESTAMP, updatedAt: new Date().toISOString() }).catch(()=>{}); }
           return;
         }
         acShowSetup({ phone: acMyPhone });
         return;
       }
       fillMe(me); acCacheProfile(me);
+      if(acIsExpired(me)) acShowExpired(me);
     }).catch(()=>{ if(!cached) acNotify('Pa t kapab chaje pwofil ou. Verifye koneksyon ou.'); });
     acLoadContacts();
     acLoadStatuses();
-    acSetupPresence();
-    acSetupDeliveryListeners();
+    acClaimMyUid().then(() => { acSetupPresence(); acSetupDeliveryListeners(); });
   }
 
   function acSetupPresence(){
