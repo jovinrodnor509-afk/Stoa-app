@@ -108,7 +108,7 @@ window.addEventListener('error', function(e){
     position:absolute; inset:0; z-index:0;
     background-image: linear-gradient(rgba(20,19,17,0.55), rgba(20,19,17,0.75)), url('bg-hero.jpg');
     background-size: cover;
-    background-position: center;
+    background-position: center 28%;
     transition: opacity 1.5s ease-in-out;
     opacity: 0;
   }
@@ -1573,12 +1573,8 @@ window.addEventListener('error', function(e){
 
   // ---- Hero rotating background photos (wise stoic figures), synced with quotes ----
   const heroBgImages = [
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Marcus_Aurelius_statue.01.JPG",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Equestrian_statue_of_Marcus_Aurelius_(Rome)_01.jpg",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Seneca.JPG",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Bust_of_Seneca_in_the_Summer_Garden.jpg",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Epictetus2.png",
-    "https://commons.wikimedia.org/wiki/Special:FilePath/Epictetus.jpg"
+    'hero-01.jpg','hero-02.jpg','hero-03.jpg','hero-04.jpg','hero-05.jpg','hero-06.jpg',
+    'hero-07.jpg','hero-08.jpg','hero-09.jpg','hero-10.jpg','hero-11.jpg'
   ];
   const heroBgA = document.getElementById('heroBgA');
   const heroBgB = document.getElementById('heroBgB');
@@ -1586,7 +1582,8 @@ window.addEventListener('error', function(e){
   function setBgLayer(layer, url){
     layer.style.backgroundImage = `linear-gradient(rgba(20,19,17,0.55), rgba(20,19,17,0.75)), url('${url}')`;
   }
-  heroBgA.style.opacity = 1; // foto lokal (bg-hero.jpg) parèt tousuite, san tann 5 segond
+  setBgLayer(heroBgA, heroBgImages[0]);
+  heroBgA.style.opacity = 1; // premye foto a parèt tousuite, san tann 5 segond
   function showBg(i){
     const url = heroBgImages[i % heroBgImages.length];
     const probe = new Image();
