@@ -115,6 +115,8 @@ window.addEventListener('error', function(e){
   header.hero > *:not(.hero-bg-layer){ position:relative; z-index:1; }
   header.hero > .notif-bell-wrap, header.hero > .low-data-toggle{ position:absolute; }
   #heroBgA{ opacity:1; }
+  header.hero .mark{ transition: opacity .9s ease, transform .9s ease; }
+  header.hero .mark.mark-hide{ opacity:0; transform: translateY(-8px); pointer-events:none; }
   .mark{
     display:flex; flex-direction:column; align-items:center; gap:10px;
     font-family:'Cormorant Garamond', serif;
@@ -257,6 +259,106 @@ window.addEventListener('error', function(e){
     width:52px; height:52px; background: var(--bronze); color: var(--stone-dark);
     border:none; font-size:18px;
   }
+
+  /* ===== MIZIK: fon plen ekran + koulè ki matche ak foto a (solèy kouchan, ble nwit, vyolèt) ===== */
+  #musicBgLayer{
+    position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background-color:#070a1e; background-size:cover; background-position:40% center; background-repeat:no-repeat;
+    opacity:0; transition:opacity .6s ease;
+  }
+  #musicBgLayer::after{
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(to bottom, rgba(6,9,26,.38) 0%, rgba(6,9,26,.18) 38%, rgba(6,9,26,.62) 100%);
+  }
+  body.on-music #musicBgLayer{ opacity:1; }
+  body.on-music nav button{ color:rgba(226,234,255,.82); text-shadow:0 1px 8px rgba(0,0,0,.6); }
+  body.on-music nav button.active{ color:#ffb25a; }
+  body.on-music nav button.active::after{ background:linear-gradient(90deg,#ff8a3d,#ffc46b); }
+  body.on-music #music .section-title{ color:#ffb25a; text-shadow:0 2px 16px rgba(0,0,0,.7); }
+  body.on-music #music .search-bar{
+    background:rgba(10,14,38,.55); border-color:rgba(127,180,255,.32);
+    -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  }
+  body.on-music #music .search-bar input{ color:#f1f5ff; }
+  body.on-music #music .search-bar input::placeholder, body.on-music #music .no-results{ color:rgba(214,224,255,.7); }
+  body.on-music #music .search-icon{ color:#ffb25a; }
+  body.on-music #music .track{
+    background:rgba(10,14,38,.56); border:1px solid rgba(127,180,255,.28); border-radius:12px;
+    box-shadow:0 8px 26px rgba(0,0,0,.38);
+    -webkit-backdrop-filter:blur(14px) saturate(130%); backdrop-filter:blur(14px) saturate(130%);
+    transition:border-color .25s, box-shadow .25s, transform .25s;
+  }
+  body.on-music #music .track:hover{ border-color:rgba(255,160,80,.6); box-shadow:0 10px 30px rgba(255,120,40,.18); transform:translateY(-1px); }
+  body.on-music #music .track-num{ color:#ffb25a; }
+  body.on-music #music .track-title{ color:#ffffff; text-shadow:0 1px 6px rgba(0,0,0,.5); }
+  body.on-music #music .track-sub{ color:rgba(214,224,255,.74); }
+  body.on-music #music .dl-btn{ border-color:#ff9d4a; color:#ffb870; border-radius:8px; }
+  body.on-music #music .dl-btn:hover{ background:#ff9d4a; color:#0b1022; }
+  body.on-music #music .dl-btn.paid-btn{ background:linear-gradient(135deg,#ff8a3d,#ffc46b); color:#14172e; border-color:transparent; }
+  body.on-music #music .preview-btn{ border-color:#7fb4ff; color:#9cc6ff; border-radius:8px; }
+  body.on-music #music .preview-btn.playing{ background:#7fb4ff; color:#0b1022; }
+  body.on-music #music .price-badge.paid{ background:rgba(255,157,74,.16); color:#ffb870; border-color:rgba(255,157,74,.6); }
+  body.on-music #music .price-badge.free{ background:rgba(90,220,190,.14); color:#7ff0d2; border-color:rgba(127,240,210,.45); }
+
+  /* ===== PLAYER "MIZIK M'AP TANDE": vè ble ki marye ak foto a ===== */
+  .mini-player{
+    display:none; position:sticky; bottom:0; left:0; right:0; z-index:40; margin:16px -20px -20px;
+    padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px));
+    background:linear-gradient(180deg, rgba(14,26,78,.84), rgba(6,9,32,.94));
+    border:1px solid rgba(110,160,255,.4); border-bottom:none; border-radius:22px 22px 0 0;
+    box-shadow:0 -10px 40px rgba(40,90,255,.3), inset 0 1px 0 rgba(255,255,255,.09);
+    -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px);
+  }
+  .mini-player.show{ display:block; }
+  .mp-close{ position:absolute; top:6px; right:10px; background:none; border:none; color:rgba(220,232,255,.75); font-size:18px; cursor:pointer; padding:8px; line-height:1; }
+  .mp-head{ font-family:'Cormorant Garamond',serif; font-style:italic; font-size:18px; color:#fff; text-align:left; letter-spacing:.3px; }
+  .mp-head b{ color:#ff9d4a; font-style:normal; }
+  .mini-player .mini-player-title{
+    font-family:'Inter',sans-serif; font-style:normal; font-weight:600; font-size:14px; color:#fff;
+    text-align:left; margin:3px 0 10px; padding-right:30px; text-shadow:0 1px 8px rgba(0,0,0,.5);
+  }
+  .mp-seek-row{ display:flex; align-items:center; gap:10px; }
+  .mp-seek-row span{ font-size:11px; color:rgba(214,224,255,.78); min-width:34px; font-variant-numeric:tabular-nums; }
+  .mp-seek-row span:last-child{ text-align:right; }
+  #miniSeek{
+    -webkit-appearance:none; appearance:none; flex:1; height:4px; border-radius:4px; outline:none; margin:10px 0;
+    background:linear-gradient(90deg,#7fb4ff 0%,#a9ceff var(--p,0%), rgba(255,255,255,.2) var(--p,0%));
+  }
+  #miniSeek::-webkit-slider-thumb{ -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#fff; box-shadow:0 0 10px rgba(110,170,255,.95); }
+  #miniSeek::-moz-range-thumb{ width:14px; height:14px; border:none; border-radius:50%; background:#fff; box-shadow:0 0 10px rgba(110,170,255,.95); }
+  .mini-player-controls{ display:flex; align-items:center; justify-content:space-between; gap:4px; margin-top:4px; }
+  .mini-player-controls button{
+    background:transparent; border:none; color:#8fb8ff; width:42px; height:42px; border-radius:50%;
+    display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:0;
+    transition:color .2s, opacity .2s, transform .15s;
+  }
+  .mini-player-controls button:active{ transform:scale(.92); }
+  .mini-player-controls button svg{ width:22px; height:22px; }
+  .mini-player-controls button.play-pause{
+    width:58px; height:58px; border:2px solid #7fb4ff; color:#fff; background:rgba(30,70,200,.38);
+    box-shadow:0 0 20px rgba(80,140,255,.65), inset 0 0 12px rgba(80,140,255,.3);
+  }
+  .mini-player-controls button.play-pause svg{ width:24px; height:24px; }
+  .mini-player-controls button.is-off{ opacity:.5; }
+  .mini-player-controls button.is-on{ color:#fff; filter:drop-shadow(0 0 6px rgba(120,170,255,.95)); }
+  .mini-player-controls button.fav-on{ color:#ff6b95; filter:drop-shadow(0 0 6px rgba(255,90,140,.7)); }
+  .mini-player-controls button.fav-on svg{ fill:currentColor; }
+  /* Chanson k ap jwe a nan lis la */
+  .track-num .eq{ display:none; align-items:flex-end; gap:2px; height:16px; }
+  .track-num .eq i{ display:block; width:3px; height:5px; background:#7fb4ff; border-radius:1px; }
+  .track.now-playing .track-num .tn{ display:none; }
+  .track.now-playing .track-num .eq{ display:inline-flex; }
+  .track.eq-on .eq i{ animation:eqBar .9s ease-in-out infinite; }
+  .track.eq-on .eq i:nth-child(2){ animation-delay:-.3s; }
+  .track.eq-on .eq i:nth-child(3){ animation-delay:-.6s; }
+  @keyframes eqBar{ 0%,100%{ height:4px; } 50%{ height:16px; } }
+  body.on-music #music .track.now-playing, .track.now-playing{
+    background:linear-gradient(90deg, rgba(30,84,255,.66), rgba(12,20,66,.6) 72%);
+    border-color:rgba(130,180,255,.75); box-shadow:0 0 24px rgba(60,120,255,.42);
+  }
+  body.mini-player-active .share-fab{ bottom:222px; }
+  body.mini-player-active .admin-fab{ bottom:222px; }
+  body.mini-player-active .whatsapp-fab{ bottom:286px; }
   .lightbox-overlay{
     display:none; position:fixed; inset:0; background: rgba(0,0,0,0.9);
     z-index: 200; align-items:center; justify-content:center; padding: 20px;
@@ -1003,6 +1105,7 @@ window.addEventListener('error', function(e){
 </head>
 <body>
 
+<div id="musicBgLayer" aria-hidden="true"></div>
 <header class="hero">
   <div class="hero-bg-layer" id="heroBgA"></div>
   <div class="hero-bg-layer" id="heroBgB"></div>
@@ -1101,11 +1204,21 @@ window.addEventListener('error', function(e){
     <div id="trackList"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
     <div class="no-results" id="noMusicResults" style="display:none">Pa gen chanson ki koresponn.</div>
     <div class="mini-player" id="miniPlayer">
+      <button class="mp-close" id="miniClose" title="Fèmen">✕</button>
+      <div class="mp-head">♫ Mizik m'ap tande</div>
       <div class="mini-player-title" id="miniPlayerTitle">—</div>
+      <div class="mp-seek-row">
+        <span id="miniTimeCur">0:00</span>
+        <input type="range" id="miniSeek" min="0" max="1000" step="1" value="0" aria-label="Pozisyon mizik la">
+        <span id="miniTimeDur">0:00</span>
+      </div>
       <div class="mini-player-controls">
-        <button id="miniPrev">⏮</button>
-        <button class="play-pause" id="miniPlayPause">▶</button>
-        <button id="miniNext">⏭</button>
+        <button id="miniShuffle" class="is-off" title="Melanje"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg></button>
+        <button id="miniPrev" title="Anvan"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="3" height="14" rx="1"/><path d="M19 5v14L9 12z"/></svg></button>
+        <button class="play-pause" id="miniPlayPause" title="Jwe / Kanpe"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+        <button id="miniNext" title="Apre"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="16" y="5" width="3" height="14" rx="1"/><path d="M5 5v14l10-7z"/></svg></button>
+        <button id="miniRepeat" title="Bouk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
+        <button id="miniFav" title="Favori"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>
       </div>
     </div>
   </section>
@@ -1516,6 +1629,7 @@ window.addEventListener('error', function(e){
   </div>
   <div style="position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 28px);display:flex;justify-content:center;gap:14px;z-index:3">
     <button id="acCallMute" class="acc-btn" style="display:none">🎤</button>
+    <button id="acCallSpeaker" class="acc-btn" style="display:none" title="Haut-parleur">🔈</button>
     <button id="acCallCam" class="acc-btn" style="display:none">📹</button>
     <button id="acCallFlip" class="acc-btn" style="display:none" title="Chanje kamera">🔄</button>
     <button id="acCallAccept" class="ac-call-accept" style="display:none">📞 Reponn</button>
@@ -1561,6 +1675,19 @@ window.addEventListener('error', function(e){
       updateFabOffset();
     });
   });
+
+  // ---- Fon mizik la: parèt sèlman lè onglè Mizik la aktif (pa chaje li nan Mòd Done Fèb) ----
+  const musicPanelEl = document.getElementById('music');
+  const musicBgLayer = document.getElementById('musicBgLayer');
+  function syncMusicBg(){
+    const on = musicPanelEl.classList.contains('active');
+    if(on && !musicBgLayer.style.backgroundImage && localStorage.getItem('stoa_low_data') !== '1'){
+      musicBgLayer.style.backgroundImage = "url('music-bg.jpg')";
+    }
+    document.body.classList.toggle('on-music', on && !!musicBgLayer.style.backgroundImage);
+  }
+  new MutationObserver(syncMusicBg).observe(musicPanelEl, { attributes:true, attributeFilter:['class'] });
+  syncMusicBg();
 
   // ---- Anpeche FAB yo (Pataje, Admin, WhatsApp) monte sou mini-player mizik la ----
   function updateFabOffset(){
@@ -2021,7 +2148,7 @@ window.addEventListener('error', function(e){
       const removeBtn = isAdmin ? `<button class="item-remove" data-remove-track="${id}">Efase</button>` : '';
       div.innerHTML = `
         <div class="track-top-row">
-          <div class="track-num">${String(idx+1).padStart(2,'0')}</div>
+          <div class="track-num"><span class="tn">${String(idx+1).padStart(2,'0')}</span><span class="eq"><i></i><i></i><i></i></span></div>
           <div class="track-info">
             <div class="track-title">${t.title}</div>
             <div class="track-sub">${t.sub}</div>
@@ -2043,6 +2170,7 @@ window.addEventListener('error', function(e){
       `;
       trackList.appendChild(div);
     });
+    try{ syncTrackButtons(); }catch(e){}
   }
   renderTracks();
 
@@ -2089,29 +2217,106 @@ window.addEventListener('error', function(e){
     }
   });
 
-  // ---- Mini player: play/pause + previous/next navigation ----
+  // ---- Mini player "Mizik m'ap tande": jwe/kanpe, anvan/apre, melanje, bouk, favori, ba pwogrè ----
   const miniPlayer = document.getElementById('miniPlayer');
   const miniPlayerTitle = document.getElementById('miniPlayerTitle');
   const miniPlayPause = document.getElementById('miniPlayPause');
   const miniPrev = document.getElementById('miniPrev');
   const miniNext = document.getElementById('miniNext');
+  const miniShuffle = document.getElementById('miniShuffle');
+  const miniRepeat = document.getElementById('miniRepeat');
+  const miniFav = document.getElementById('miniFav');
+  const miniClose = document.getElementById('miniClose');
+  const miniSeek = document.getElementById('miniSeek');
+  const miniTimeCur = document.getElementById('miniTimeCur');
+  const miniTimeDur = document.getElementById('miniTimeDur');
+
+  const SVG_O = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
+  const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+  const ICON_REPEAT = SVG_O + '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
+  const ICON_REPEAT_ONE = SVG_O + '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/><text x="12" y="15.5" font-size="8" text-anchor="middle" fill="currentColor" stroke="none" font-weight="700">1</text></svg>';
+
+  let shuffleOn = localStorage.getItem('stoa_shuffle') === '1';
+  let repeatMode = localStorage.getItem('stoa_repeat') || 'all'; // 'off' | 'all' | 'one'
+  if(!['off','all','one'].includes(repeatMode)) repeatMode = 'all';
+  let favTracks = [];
+  try{ favTracks = JSON.parse(localStorage.getItem('stoa_fav_tracks') || '[]'); }catch(e){ favTracks = []; }
+  const shufflePlayed = new Set();
+  const playHistory = [];
+  let miniSeeking = false;
+
+  function fmtTime(sec){
+    if(!isFinite(sec) || sec < 0) sec = 0;
+    const m = Math.floor(sec / 60), r = Math.floor(sec % 60);
+    return m + ':' + String(r).padStart(2, '0');
+  }
+  function isPlayable(t){ return !(t.price > 0) || isPurchaseActive('track', t.id); }
+
+  function syncModeButtons(){
+    miniShuffle.classList.toggle('is-on', shuffleOn);
+    miniShuffle.classList.toggle('is-off', !shuffleOn);
+    miniShuffle.title = shuffleOn ? 'Melanje: aktive' : 'Melanje: etenn';
+    miniRepeat.innerHTML = repeatMode === 'one' ? ICON_REPEAT_ONE : ICON_REPEAT;
+    miniRepeat.classList.toggle('is-on', repeatMode !== 'off');
+    miniRepeat.classList.toggle('is-off', repeatMode === 'off');
+    miniRepeat.title = repeatMode === 'one' ? 'Bouk: repete chanson sa a' : (repeatMode === 'all' ? 'Bouk: repete tout lis la' : 'Bouk: etenn');
+  }
+  function syncFavBtn(){
+    const id = previewAudio.dataset.playingId;
+    miniFav.classList.toggle('fav-on', !!id && favTracks.includes(id));
+  }
+  function syncSeek(){
+    const d = previewAudio.duration, c = previewAudio.currentTime || 0;
+    miniTimeCur.textContent = fmtTime(c);
+    miniTimeDur.textContent = isFinite(d) ? fmtTime(d) : '0:00';
+    if(!miniSeeking){
+      const v = isFinite(d) && d > 0 ? Math.round(c / d * 1000) : 0;
+      miniSeek.value = v;
+      miniSeek.style.setProperty('--p', (v / 10) + '%');
+    }
+  }
 
   function syncTrackButtons(){
+    const curId = previewAudio.dataset.playingId;
+    const playing = !!curId && !previewAudio.paused;
     document.querySelectorAll('.preview-btn').forEach(b => {
-      const isCurrent = b.dataset.preview === previewAudio.dataset.playingId;
+      const isCurrent = b.dataset.preview === curId;
       const isPlaying = isCurrent && !previewAudio.paused;
       b.textContent = isPlaying ? '⏸ Kanpe' : '▶ Koute';
       b.classList.toggle('playing', isPlaying);
     });
-    miniPlayPause.textContent = (!previewAudio.paused && previewAudio.dataset.playingId) ? '⏸' : '▶';
+    trackList.querySelectorAll('.track').forEach(row => {
+      const btn = row.querySelector('.preview-btn');
+      const isCur = !!(btn && curId && btn.dataset.preview === curId);
+      row.classList.toggle('now-playing', isCur);
+      row.classList.toggle('eq-on', isCur && playing);
+    });
+    miniPlayPause.innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+    syncFavBtn();
   }
 
   const trackMediaCache = {}; // in-memory cache so replays don't refetch from Firebase
 
+  function updateMediaSession(track){
+    if(!('mediaSession' in navigator) || !track) return;
+    try{
+      navigator.mediaSession.metadata = new MediaMetadata({ title: track.title || 'STOA', artist: track.sub || 'STOA', album: 'STOA' });
+      navigator.mediaSession.setActionHandler('play', () => { previewAudio.play().catch(()=>{}); });
+      navigator.mediaSession.setActionHandler('pause', () => { previewAudio.pause(); });
+      navigator.mediaSession.setActionHandler('previoustrack', () => skipTrack(-1));
+      navigator.mediaSession.setActionHandler('nexttrack', () => skipTrack(1));
+    }catch(e){}
+  }
+
   function actuallyPlay(id, url){
     previewAudio.src = url;
     previewAudio.dataset.playingId = id;
+    if(playHistory[playHistory.length - 1] !== id){ playHistory.push(id); if(playHistory.length > 60) playHistory.shift(); }
     previewAudio.play().catch(()=> alert('Pa gen demo odyo konekte pou chanson sa a ankò.'));
+    updateMediaSession(tracks.find(t => t.id === id));
+    miniSeek.value = 0; miniSeek.style.setProperty('--p', '0%');
+    miniTimeCur.textContent = '0:00'; miniTimeDur.textContent = '0:00';
     syncTrackButtons();
   }
 
@@ -2133,6 +2338,8 @@ window.addEventListener('error', function(e){
       syncTrackButtons();
       return;
     }
+    // chanson ki chwazi ak men (pa otomatik) rekòmanse sik melanje a
+    shufflePlayed.clear();
 
     if(track.hasMedia){
       if(trackMediaCache[id]){
@@ -2154,13 +2361,60 @@ window.addEventListener('error', function(e){
     actuallyPlay(id, previewUrl);
   }
 
-  function skipTrack(direction){
+  // Jwenn chanson kap vini an (respekte melanje ak bouk). auto = true lè chanson an fini poukont li.
+  function pickNext(auto){
+    const cur = previewAudio.dataset.playingId;
+    const list = tracks.filter(isPlayable);
+    if(!list.length) return null;
+    if(shuffleOn){
+      if(cur) shufflePlayed.add(cur);
+      let pool = list.filter(t => !shufflePlayed.has(t.id));
+      if(!pool.length){
+        if(auto && repeatMode === 'off') return null;
+        shufflePlayed.clear(); if(cur) shufflePlayed.add(cur);
+        pool = list.filter(t => t.id !== cur);
+        if(!pool.length) pool = list;
+      }
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+    const i = tracks.findIndex(t => t.id === cur);
+    for(let step = 1; step <= tracks.length; step++){
+      const j = i + step;
+      if(j >= tracks.length && auto && repeatMode === 'off') return null;
+      const t = tracks[j % tracks.length];
+      if(isPlayable(t)) return t;
+    }
+    return null;
+  }
+  function pickPrev(){
+    const cur = previewAudio.dataset.playingId;
+    if(shuffleOn && playHistory.length > 1){
+      playHistory.pop(); // chanson k ap jwe a
+      const prevId = playHistory.pop();
+      const t = tracks.find(x => x.id === prevId);
+      if(t && isPlayable(t)) return t;
+    }
+    const i = tracks.findIndex(t => t.id === cur);
+    for(let step = 1; step <= tracks.length; step++){
+      const t = tracks[((i - step) % tracks.length + tracks.length) % tracks.length];
+      if(isPlayable(t)) return t;
+    }
+    return null;
+  }
+
+  function skipTrack(direction, auto){
     if(!tracks.length) return;
-    const currentId = previewAudio.dataset.playingId;
-    let idx = tracks.findIndex(t => t.id === currentId);
-    if(idx === -1) idx = 0;
-    idx = (idx + direction + tracks.length) % tracks.length;
-    playTrackById(tracks[idx].id);
+    const cur = previewAudio.dataset.playingId;
+    if(direction < 0 && cur && previewAudio.currentTime > 3){ previewAudio.currentTime = 0; return; }
+    const t = direction < 0 ? pickPrev() : pickNext(!!auto);
+    if(!t){
+      previewAudio.pause();
+      try{ previewAudio.currentTime = 0; }catch(e){}
+      syncTrackButtons(); syncSeek();
+      return;
+    }
+    if(t.id === cur){ previewAudio.currentTime = 0; previewAudio.play().catch(()=>{}); return; }
+    playTrackById(t.id);
   }
 
   miniPlayPause.addEventListener('click', ()=>{
@@ -2168,10 +2422,53 @@ window.addEventListener('error', function(e){
   });
   miniPrev.addEventListener('click', ()=> skipTrack(-1));
   miniNext.addEventListener('click', ()=> skipTrack(1));
+  miniShuffle.addEventListener('click', ()=>{
+    shuffleOn = !shuffleOn;
+    localStorage.setItem('stoa_shuffle', shuffleOn ? '1' : '0');
+    shufflePlayed.clear();
+    syncModeButtons();
+  });
+  miniRepeat.addEventListener('click', ()=>{
+    repeatMode = repeatMode === 'off' ? 'all' : (repeatMode === 'all' ? 'one' : 'off');
+    localStorage.setItem('stoa_repeat', repeatMode);
+    syncModeButtons();
+  });
+  miniFav.addEventListener('click', ()=>{
+    const id = previewAudio.dataset.playingId; if(!id) return;
+    const k = favTracks.indexOf(id);
+    if(k === -1) favTracks.push(id); else favTracks.splice(k, 1);
+    localStorage.setItem('stoa_fav_tracks', JSON.stringify(favTracks));
+    syncFavBtn();
+  });
+  miniClose.addEventListener('click', ()=>{
+    previewAudio.pause();
+    previewAudio.dataset.playingId = '';
+    miniPlayer.classList.remove('show');
+    syncTrackButtons(); updateFabOffset();
+  });
+  miniSeek.addEventListener('input', ()=>{
+    miniSeeking = true;
+    miniSeek.style.setProperty('--p', (miniSeek.value / 10) + '%');
+    const d = previewAudio.duration;
+    if(isFinite(d) && d > 0){ miniTimeCur.textContent = fmtTime(miniSeek.value / 1000 * d); }
+  });
+  miniSeek.addEventListener('change', ()=>{
+    const d = previewAudio.duration;
+    if(isFinite(d) && d > 0) previewAudio.currentTime = miniSeek.value / 1000 * d;
+    miniSeeking = false;
+    syncSeek();
+  });
+  syncModeButtons();
 
   previewAudio.addEventListener('play', syncTrackButtons);
   previewAudio.addEventListener('pause', syncTrackButtons);
-  previewAudio.addEventListener('ended', ()=> skipTrack(1));
+  previewAudio.addEventListener('timeupdate', syncSeek);
+  previewAudio.addEventListener('loadedmetadata', syncSeek);
+  previewAudio.addEventListener('durationchange', syncSeek);
+  previewAudio.addEventListener('ended', ()=>{
+    if(repeatMode === 'one'){ previewAudio.currentTime = 0; previewAudio.play().catch(()=>{}); return; }
+    skipTrack(1, true);
+  });
 
   // ---- Gallery (loaded from Firebase) ----
   const galleryGrid = document.getElementById('galleryGrid');
@@ -3327,7 +3624,19 @@ window.addEventListener('error', function(e){
     document.getElementById('registerBanner').classList.add('collapsed');
   }
 
-  function applyRegWall(){ document.documentElement.classList.toggle('reg-wall', !isRegistered && !isAdmin); }
+  // Logo STOA a disparèt 5 segond apre fon an vizib (pa pandan miray enskripsyon an)
+  let markTimer = null;
+  function scheduleMarkHide(){
+    if(markTimer || document.documentElement.classList.contains('reg-wall')) return;
+    markTimer = setTimeout(() => {
+      const m = document.querySelector('header.hero .mark');
+      if(m) m.classList.add('mark-hide');
+    }, 5000);
+  }
+  function applyRegWall(){
+    document.documentElement.classList.toggle('reg-wall', !isRegistered && !isAdmin);
+    scheduleMarkHide();
+  }
   applyRegWall();
 
   // ---- Notifications: alert registered users about new tracks/photos/wisdom ----
@@ -4065,12 +4374,15 @@ window.addEventListener('error', function(e){
       if(acDeliveryListeners[phone]) return;
       const chatId = chatIdFor(acMyPhone, phone);
       const ref = ayitiChatsRef.child(chatId).child('messages');
+      let ready = false; // vin vre apre istwa a fin chaje: se sèlman nouvo mesaj ki fè son
       ref.on('child_added', (snap)=>{
         const m = snap.val();
+        if(ready && m && m.from !== acMyPhone && !acIsBlocked(m.from)) acPlayMsgSound();
         if(m && m.from !== acMyPhone && !m.delivered){
           snap.ref.update({ delivered: true, deliveredAt: firebase.database.ServerValue.TIMESTAMP });
         }
       });
+      ref.once('value').then(() => { ready = true; }).catch(() => { ready = true; });
       acDeliveryListeners[phone] = ref;
     });
   }
@@ -4093,6 +4405,7 @@ window.addEventListener('error', function(e){
         cur.push(from); acSaveContacts(cur);
         acLoadContacts(); acSetupDeliveryListeners();
         const v = u.val() || {};
+        acPlayMsgSound();
         acNotify('💬 Nouvo konvèsasyon: ' + ([v.firstName, v.lastName].filter(Boolean).join(' ') || from));
       }).catch(()=>{});
     }, () => {});
@@ -4847,25 +5160,92 @@ window.addEventListener('error', function(e){
     }catch(e){}
   }, ()=>{});
 
-  // ---- Son sonnri (WebAudio, san fichye) ----
-  let acRingCtx = null, acRingTimer = null;
-  function acRing(on){
+  // ---- Son (WebAudio, san fichye): sonnri apèl, son "ap sonnen", son mesaj ----
+  let acRingCtx = null, acRingTimer = null, acLastMsgSound = 0;
+  function acAudio(){
+    try{
+      acRingCtx = acRingCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if(acRingCtx.state === 'suspended') acRingCtx.resume();
+      return acRingCtx;
+    }catch(e){ return null; }
+  }
+  // Telefòn yo bloke son jiskaske itilizatè a touche ekran an: nou debloke l nan premye touche a
+  ['touchstart','pointerdown','click','keydown'].forEach(ev => document.addEventListener(ev, () => { acAudio(); }, { passive:true }));
+  function acTone(freq, start, dur, vol){
+    const ctx = acAudio(); if(!ctx) return;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    const t = ctx.currentTime + start;
+    o.type = 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.02);
+    g.gain.setValueAtTime(vol, t + Math.max(0.02, dur - 0.06));
+    g.gain.linearRampToValueAtTime(0, t + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  // Ti son lè yon mesaj rive (2 nòt kout)
+  function acPlayMsgSound(){
+    const now = Date.now();
+    if(now - acLastMsgSound < 700) return; // pa jwe plizyè fwa si plizyè mesaj rive ansanm
+    acLastMsgSound = now;
+    acTone(880, 0, 0.14, 0.2);
+    acTone(1175, 0.13, 0.22, 0.2);
+  }
+  // acRing(true) = sonnri apèl k ap antre | acRing('out') = son "ap sonnen" pou moun k ap rele a | acRing(false) = kanpe
+  function acRing(mode){
     clearInterval(acRingTimer); acRingTimer = null;
-    if(!on){ try{ navigator.vibrate && navigator.vibrate(0); }catch(e){} return; }
-    const beep = () => {
-      try{
-        acRingCtx = acRingCtx || new (window.AudioContext || window.webkitAudioContext)();
-        if(acRingCtx.state === 'suspended') acRingCtx.resume();
-        [0, 0.5].forEach(off => {
-          const o = acRingCtx.createOscillator(), g = acRingCtx.createGain();
-          o.frequency.value = 440 + (off ? 40 : 0); g.gain.value = 0.15;
-          o.connect(g); g.connect(acRingCtx.destination);
-          o.start(acRingCtx.currentTime + off); o.stop(acRingCtx.currentTime + off + 0.35);
-        });
-        navigator.vibrate && navigator.vibrate([300, 200, 300]);
-      }catch(e){}
+    if(!mode){ try{ navigator.vibrate && navigator.vibrate(0); }catch(e){} return; }
+    if(mode === 'out'){
+      const back = () => { acTone(440, 0, 1.6, 0.14); acTone(480, 0, 1.6, 0.14); };
+      back(); acRingTimer = setInterval(back, 4000);
+      return;
+    }
+    const ring = () => {
+      [0, 0.35, 0.7].forEach((off, i) => acTone(i % 2 ? 784 : 988, off, 0.28, 0.22));
+      [1.05, 1.4, 1.75].forEach((off, i) => acTone(i % 2 ? 784 : 988, off, 0.28, 0.22));
+      try{ navigator.vibrate && navigator.vibrate([400, 200, 400]); }catch(e){}
     };
-    beep(); acRingTimer = setInterval(beep, 2500);
+    ring(); acRingTimer = setInterval(ring, 3500);
+  }
+
+  // ---- Haut-parleur: ogmante vòl vwa moun nan (WebAudio gain + limitè pou pa distòde) ----
+  let acSpk = null, acSpkOn = false;
+  function acSpeakerBtn(){
+    const b = document.getElementById('acCallSpeaker'); if(!b) return;
+    b.textContent = acSpkOn ? '🔊' : '🔈';
+    b.style.background = acSpkOn ? 'rgba(201,160,99,.85)' : '';
+  }
+  function acSpeakerEl(){
+    return document.getElementById(acCall && acCall.type === 'video' ? 'acRemoteVideo' : 'acRemoteAudio');
+  }
+  function acSpeakerOff(){
+    acSpkOn = false;
+    if(acSpk){
+      try{ acSpk.src.disconnect(); acSpk.gain.disconnect(); acSpk.comp.disconnect(); }catch(e){}
+      acSpk = null;
+    }
+    ['acRemoteAudio','acRemoteVideo'].forEach(id => { const el = document.getElementById(id); if(el) el.muted = false; });
+    acSpeakerBtn();
+  }
+  async function acToggleSpeaker(){
+    if(acSpkOn){ acSpeakerOff(); acNotify('🔈 Haut-parleur fèmen'); return; }
+    const el = acSpeakerEl();
+    const stream = el && el.srcObject;
+    const ctx = acAudio();
+    if(!stream || !ctx){ acNotify('Tann apèl la konekte anvan ou ogmante vòl la.'); return; }
+    try{ if(ctx.state !== 'running') await ctx.resume(); }catch(e){}
+    if(ctx.state !== 'running'){ acNotify('Pa t kapab ogmante vòl la. Touche ekran an epi eseye ankò.'); return; }
+    try{
+      const src = ctx.createMediaStreamSource(stream);
+      const gain = ctx.createGain(); gain.gain.value = 3;
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -20; comp.knee.value = 20; comp.ratio.value = 8;
+      src.connect(gain); gain.connect(comp); comp.connect(ctx.destination);
+      acSpk = { src, gain, comp };
+      el.muted = true; // pa tande de fwa: se chemen ogmante a ki jwe
+      acSpkOn = true; acSpeakerBtn();
+      acNotify('🔊 Haut-parleur aktive: vòl la monte');
+    }catch(e){ acSpeakerOff(); acNotify('Pa t kapab ogmante vòl la.'); }
   }
 
   // ---- Ekran apèl ----
@@ -4878,11 +5258,13 @@ window.addEventListener('error', function(e){
     if(opts.incoming != null){
       document.getElementById('acCallAccept').style.display = opts.incoming ? 'inline-block' : 'none';
       document.getElementById('acCallMute').style.display = opts.incoming ? 'none' : 'inline-block';
+      document.getElementById('acCallSpeaker').style.display = opts.incoming ? 'none' : 'inline-block';
       document.getElementById('acCallCam').style.display = (!opts.incoming && opts.video) ? 'inline-block' : 'none';
       document.getElementById('acCallFlip').style.display = (!opts.incoming && opts.video) ? 'inline-block' : 'none';
     }
   }
   function acCallHideUI(){
+    acSpeakerOff();
     document.getElementById('acCallOverlay').style.display = 'none';
     ['acRemoteVideo','acLocalVideo'].forEach(id => { const v = document.getElementById(id); v.srcObject = null; v.style.display = 'none'; });
     document.getElementById('acRemoteAudio').srcObject = null;
@@ -5018,6 +5400,7 @@ window.addEventListener('error', function(e){
     const ref = ayitiCallsRef.child(peer).push();
     const c = acCall = { id: ref.key, role: 'caller', type, peer, ref, stream, offs: [], answered: false };
     acCallUI({ name, photo, status: 'Ap sonnen…', incoming: false, video: type === 'video' });
+    acRing('out');
     acAttachLocal(c);
     try{
       const pc = acMakePC(c, 'caller');
@@ -5031,6 +5414,7 @@ window.addEventListener('error', function(e){
       if(!v) return;
       if(v.status === 'accepted' && v.answer && !c.answered){
         c.answered = true;
+        acRing(false);
         clearTimeout(c.ringTimer);
         acCallUI({ status: 'Ap konekte…' });
         try{ await c.pc.setRemoteDescription(v.answer); acListenCandidates(c, 'callee'); }
@@ -5110,12 +5494,13 @@ window.addEventListener('error', function(e){
 
   // ---- Bouton yo ----
   document.addEventListener('click', (e) => {
-    const t = e.target.closest ? e.target.closest('#acCallBtn, #acCallAccept, #acCallHang, #acCallMute, #acCallCam, #acCallFlip') : null;
+    const t = e.target.closest ? e.target.closest('#acCallBtn, #acCallAccept, #acCallHang, #acCallMute, #acCallCam, #acCallFlip, #acCallSpeaker') : null;
     if(!t) return;
     if(t.id === 'acCallBtn'){ acCallMenu(); }
     else if(t.id === 'acCallAccept'){ acAcceptCall(); }
     else if(t.id === 'acCallHang'){ acDeclineOrHang(); }
     else if(t.id === 'acCallFlip'){ acFlipCamera(); }
+    else if(t.id === 'acCallSpeaker'){ acToggleSpeaker(); }
     else if(acCall && acCall.stream){
       const audio = t.id === 'acCallMute';
       const tracks = audio ? acCall.stream.getAudioTracks() : acCall.stream.getVideoTracks();
