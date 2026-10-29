@@ -1490,6 +1490,7 @@ window.addEventListener('error', function(e){
         <div style="font-size:12px;color:var(--parchment-dim);margin-bottom:8px;">Kole adrès Worker la (https://stoa-push.…workers.dev). San li, pa gen notifikasyon.</div>
         <input type="text" id="pushUrlInput" placeholder="https://stoa-push.xxxx.workers.dev" style="width:100%;background:var(--stone-dark);border:1px solid var(--stone-line);color:var(--parchment);padding:9px 10px;border-radius:6px;margin-bottom:8px;">
         <button class="dl-btn" id="savePushUrl">Sove adrès la</button>
+        <button class="dl-btn" style="margin-top:8px;" onclick="OneSignalDeferred.push(function(o){ o.Notifications.requestPermission(); })">🔔 Aktive notifikasyon</button>
         <div id="pushUrlStatus" style="font-size:12px;margin-top:8px;"></div>
       </div>
       <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
