@@ -61,28 +61,7 @@ window.addEventListener('error', function(e){
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "332143af-0e0c-4979-b52c-7f0bda021938",
-      notifyButton: { enable: false },
-      allowLocalhostAsSecureOrigin: true,
-      serviceWorkerPath: 'sw.js',
-      serviceWorkerParam: { scope: '/' },
-    });
-  });
-  function stoaEnablePush(){
-    OneSignalDeferred.push(async function(o){
-      try{
-        await o.Notifications.requestPermission();
-        await o.User.PushSubscription.optIn();
-        const ps = o.User.PushSubscription;
-        alert('Otorizasyon: ' + o.Notifications.permission + '\nAbònman aktif: ' + ps.optedIn + '\nID: ' + (ps.id || 'pa gen') + '\nToken: ' + (ps.token ? 'wi' : 'non'));
-      }catch(e){ alert('Erè: ' + (e && e.message ? e.message : e)); }
-    });
-  }
-</script>
+<script src="push.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>

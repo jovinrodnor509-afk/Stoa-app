@@ -1,6 +1,6 @@
 importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
-const CACHE_NAME = 'stoa-cache-v13';
+const CACHE_NAME = 'stoa-cache-v14';
 const ASSETS = [
   './',
   './index.html',
@@ -20,9 +20,14 @@ function isNetworkFirst(url){
   return NETWORK_FIRST.some(p => path.endsWith(p.replace('./','/')) || path === self.location.origin + '/' );
 }
 
+// INSTALL: chak fichye kache apa. Si youn manke (404), SW a pa bloke: li enstale kanmenm
+// (anvan, cache.addAll() te fè tout enstalasyon an echwe si yon sèl imaj te manke,
+// epi SW a pa t janm aktive => pa gen token push).
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(ASSETS.map((a) => cache.add(a).catch(() => {})))
+    )
   );
   self.skipWaiting();
 });
@@ -31,9 +36,8 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
@@ -41,6 +45,10 @@ self.addEventListener('fetch', (event) => {
 
   const req = event.request;
   const url = req.url;
+
+  // Kite OneSignal travay poukont li (pa touche demann li yo)
+  if(url.includes('onesignal.com')) return;
+
   const isAppShell = req.mode === 'navigate' || isNetworkFirst(url);
 
   if(isAppShell){
