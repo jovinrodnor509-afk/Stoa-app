@@ -1953,6 +1953,19 @@ window.addEventListener('error', function(e){
   const tracksRef = db.ref('tracks');
 
   const ONESIGNAL_APP_ID = "332143af-0e0c-4979-b52c-7f0bda021938";
+  // ---- OneSignal: inisyalizasyon (san sa pa gen token / abònman) ----
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  window.OneSignalDeferred.push(async function(OneSignal){
+    try{
+      const base = location.pathname.replace(/[^\/]*$/, ''); // '/Stoa-app/' sou GitHub Pages, '/' sou Cloudflare
+      await OneSignal.init({
+        appId: ONESIGNAL_APP_ID,
+        serviceWorkerPath: base + 'sw.js',
+        serviceWorkerParam: { scope: base },
+        notifyButton: { enable: false }
+      });
+    }catch(e){ console.log('OneSignal init erè:', e); }
+  });
   // ---- Notifikasyon: voye pa yon Cloudflare Worker (kle sekrè a pa nan paj la ankò) ----
   let STOA_PUSH_URL = '';
   db.ref('settings/pushUrl').on('value', (snap) => { STOA_PUSH_URL = String(snap.val() || '').trim(); }, ()=>{});
