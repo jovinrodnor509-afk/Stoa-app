@@ -5544,5 +5544,37 @@ window.addEventListener('error', function(e){
 
   // ==================== FEN AYITICHAT ====================
 </script>
+
+<!-- Bouton notifikasyon push (OneSignal) -->
+<button id="enableNotifBtn" style="position:fixed;right:14px;bottom:90px;z-index:99999;padding:12px 16px;border:0;border-radius:999px;background:#c9a24a;color:#1c1b19;font-weight:700;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.4);display:none">🔔 Aktive notifikasyon</button>
+<script>
+(function(){
+  var btn=document.getElementById('enableNotifBtn');
+  window.OneSignalDeferred=window.OneSignalDeferred||[];
+  window.OneSignalDeferred.push(async function(OneSignal){
+    try{
+      // Montre bouton an sèlman si itilizatè a poko abòne
+      if(!OneSignal.User.PushSubscription.optedIn){ btn.style.display='block'; }
+      OneSignal.User.PushSubscription.addEventListener('change',function(e){
+        if(e.current && e.current.optedIn){ btn.style.display='none'; }
+      });
+    }catch(e){ btn.style.display='block'; }
+  });
+  btn.addEventListener('click',function(){
+    window.OneSignalDeferred.push(async function(OneSignal){
+      try{
+        await OneSignal.Notifications.requestPermission();
+        if(OneSignal.Notifications.permission){
+          await OneSignal.User.PushSubscription.optIn();
+          btn.style.display='none';
+          alert('✅ Notifikasyon aktive!');
+        } else {
+          alert('Notifikasyon bloke. Aktive yo nan paramèt sit la (ikòn kadna bò adrès la).');
+        }
+      }catch(e){ console.log('Push erè:',e); alert('Erè: '+(e&&e.message?e.message:e)); }
+    });
+  });
+})();
+</script>
 </body>
 </html>

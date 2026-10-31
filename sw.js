@@ -1,6 +1,6 @@
 importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
-const CACHE_NAME = 'stoa-cache-v14';
+const CACHE_NAME = 'stoa-cache-v15';
 const ASSETS = [
   './',
   './index.html',
