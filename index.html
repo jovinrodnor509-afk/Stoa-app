@@ -1158,7 +1158,7 @@ window.addEventListener('error', function(e){
   </div>
   <div class="register-banner-content" id="registerBannerContent">
     <h3>Rete Konekte ak STOA</h3>
-    <p>Pou antre nan STOA, enskri (gratis, 10 segond). Mete non ou ak nimewo WhatsApp ou oswa imèl ou.</p>
+    <p>Byenvini nan STOA ! Enskri gratis pou w jwi mizik, imaj, videyo ak sajès nou yo. Mete non ou ak nimewo WhatsApp ou oswa imèl ou.</p>
     <div class="register-form" id="registerForm">
       <input type="text" id="regName" placeholder="Non ou">
       <input type="tel" id="regWhatsapp" placeholder="Nimewo WhatsApp ou (egzanp: 509 1234 5678)">
@@ -1468,12 +1468,18 @@ window.addEventListener('error', function(e){
         <p style="margin:0 0 10px;"><strong>AyitiChat.</strong> Pale prive ak lòt moun ki sou STOA: mesaj, mesaj vokal, stikè ak fichye. Ou ka rele an vokal oswa an videyo tou.</p>
         <p style="margin:0 0 10px;"><strong>Notifikasyon.</strong> Ou resevwa yon siyal lè yon moun voye w yon mesaj oswa rele w, menm lè STOA fèmen.</p>
         <p style="margin:0 0 10px;"><strong>Sou telefòn ou.</strong> Enstale STOA sou ekran an pou louvri l pi vit, tankou yon aplikasyon òdinè.</p>
-        <p style="margin:0;"><strong>Gratis pou kòmanse.</strong> Enskripsyon an pran 10 segond: ou bezwen sèlman non ou ak nimewo WhatsApp ou oswa imèl ou.</p>
+        <p style="margin:0;"><strong>Gratis pou kòmanse.</strong> Byenvini nan fanmi STOA: ou bezwen sèlman non ou ak nimewo WhatsApp ou oswa imèl ou pou w kòmanse jwi tout kontni yo.</p>
       </div>
     </div>
 
+    <div class="wisdom-card" id="notifCard" style="text-align:left; margin-bottom:20px;">
+      <div class="section-title" style="font-size:17px; margin-bottom:10px;">🔔 Notifikasyon</div>
+      <p id="notifState" style="font-size:14px; line-height:1.7; color: var(--parchment-dim); margin:0 0 12px;">Aktive notifikasyon pou w resevwa yon siyal lè gen nouvo mesaj oswa nouvo kontni sou STOA.</p>
+      <button id="enableNotifBtn" style="display:none;width:100%;padding:14px 16px;border:0;border-radius:10px;background:#c9a24a;color:#1c1b19;font-weight:700;font-size:15px;letter-spacing:.04em">🔔 Aktive notifikasyon</button>
+    </div>
+
     <div class="about-contact" id="aboutContactDisplay" style="display:none;"></div>
-    <div style="opacity:.45;font-size:11px;text-align:center;margin:14px 0 4px;">STOA v2026.10.24-m</div>
+    <div style="opacity:.45;font-size:11px;text-align:center;margin:14px 0 4px;">STOA v2026.11.01-p</div>
 
     <div class="admin-only" style="display:none;margin-top:20px;">
       <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
@@ -3570,7 +3576,7 @@ window.addEventListener('error', function(e){
 
   function requireRegistration(actionLabel){
     if(isRegistered || isAdmin) return true;
-    alert('Ou dwe enskri anvan (gratis) pou ' + actionLabel + '. Ranpli non ak imèl ou anba a — sa ap pran 10 segond.');
+    alert('Ou dwe enskri anvan (gratis) pou ' + actionLabel + '. Ranpli non ak imèl ou anba a pou w jwi tout kontni STOA yo.');
     document.getElementById('registerBanner').scrollIntoView({behavior:'smooth', block:'center'});
     document.getElementById('regName').focus();
     return false;
@@ -5546,7 +5552,6 @@ window.addEventListener('error', function(e){
 </script>
 
 <!-- Bouton notifikasyon push (OneSignal) -->
-<button id="enableNotifBtn" style="position:fixed;right:14px;bottom:90px;z-index:99999;padding:12px 16px;border:0;border-radius:999px;background:#c9a24a;color:#1c1b19;font-weight:700;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.4);display:none">🔔 Aktive notifikasyon</button>
 <script>
 (function(){
   var btn=document.getElementById('enableNotifBtn');
@@ -5554,9 +5559,11 @@ window.addEventListener('error', function(e){
   window.OneSignalDeferred.push(async function(OneSignal){
     try{
       // Montre bouton an sèlman si itilizatè a poko abòne
-      if(!OneSignal.User.PushSubscription.optedIn){ btn.style.display='block'; }
+      var ps0=OneSignal.User.PushSubscription;
+      function chk(){ var ok=(ps0.optedIn && ps0.token); btn.style.display=ok?'none':'block'; var st=document.getElementById('notifState'); if(st&&ok){ st.textContent='✅ Notifikasyon aktive sou aparèy sa a.'; } }
+      chk(); setTimeout(chk,3000); setTimeout(chk,8000);
       OneSignal.User.PushSubscription.addEventListener('change',function(e){
-        if(e.current && e.current.optedIn){ btn.style.display='none'; }
+        if(e.current && e.current.optedIn && e.current.token){ btn.style.display='none'; var st=document.getElementById('notifState'); if(st){ st.textContent='✅ Notifikasyon aktive sou aparèy sa a.'; } }
       });
     }catch(e){ btn.style.display='block'; }
   });
