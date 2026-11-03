@@ -5576,5 +5576,116 @@ window.addEventListener('error', function(e){
   });
 })();
 </script>
+
+<!-- Dyagnostik notifikasyon (OneSignal) : montre erè egzak sou ekran an -->
+<button id="diagBtn" style="display:none;position:fixed;right:14px;bottom:146px;z-index:99999;width:44px;height:44px;border:0;border-radius:50%;background:#2a2926;color:#f1e7cf;font-size:18px;box-shadow:0 4px 14px rgba(0,0,0,.4)">🔍</button>
+<div id="diagPanel" style="display:none;position:fixed;left:8px;right:8px;top:8px;bottom:8px;z-index:100000;background:#111;color:#e8e2d0;border:1px solid #c9a24a;border-radius:12px;padding:12px;font:12px/1.5 monospace;overflow:auto">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+    <button id="diagRun" style="padding:8px 12px">▶ Tès</button>
+    <button id="diagCopy" style="padding:8px 12px">📋 Kopye</button>
+    <button id="diagReset" style="padding:8px 12px">♻ Reyinisyalize</button>
+    <button id="diagClose" style="padding:8px 12px">✖</button>
+  </div>
+  <pre id="diagOut" style="white-space:pre-wrap;word-break:break-word;margin:0"></pre>
+</div>
+<script>
+(function(){
+  var logs=[];
+  ['log','warn','error'].forEach(function(k){
+    var o=console[k];
+    console[k]=function(){
+      try{
+        var t=Array.prototype.slice.call(arguments).map(function(a){
+          try{return (a&&a.message)?a.message:(typeof a==='object'?JSON.stringify(a):String(a));}catch(e){return String(a);}
+        }).join(' ');
+        if(/onesignal|push|subscri|token|fcm|service ?worker|permission/i.test(t)){
+          logs.push(k.toUpperCase()+': '+t.slice(0,300)); if(logs.length>40) logs.shift();
+        }
+      }catch(e){}
+      return o.apply(console,arguments);
+    };
+  });
+  window.addEventListener('error',function(e){logs.push('ERÈ: '+e.message);});
+  window.addEventListener('unhandledrejection',function(e){logs.push('PWOMES REJTE: '+(e.reason&&e.reason.message?e.reason.message:e.reason));});
+  window.OneSignalDeferred=window.OneSignalDeferred||[];
+  window.OneSignalDeferred.push(function(OneSignal){try{OneSignal.Debug.setLogLevel('trace');}catch(e){}});
+
+  var $=function(id){return document.getElementById(id);};
+  var out=$('diagOut');
+  function put(t){out.textContent+=t+'\n';}
+
+  async function run(){
+    out.textContent='';
+    put('STOA diagnostik — '+new Date().toLocaleString());
+    put('URL: '+location.href);
+    put('HTTPS: '+(location.protocol==='https:'));
+    put('Navigatè: '+navigator.userAgent);
+    put('Notification API: '+('Notification' in window)+' | permission: '+(('Notification' in window)?Notification.permission:'n/a'));
+    put('PushManager: '+('PushManager' in window));
+    put('Rezo (navigator.onLine): '+navigator.onLine);
+    put('Dat/lè telefòn: '+new Date().toISOString());
+    try{
+      var regs=await navigator.serviceWorker.getRegistrations();
+      put('\nService workers: '+regs.length);
+      for(var i=0;i<regs.length;i++){
+        var r=regs[i];
+        var st=r.active?r.active.state:(r.installing?'installing':(r.waiting?'waiting':'okenn'));
+        put(' - scope: '+r.scope+' | script: '+((r.active||r.installing||r.waiting||{}).scriptURL||'?')+' | eta: '+st);
+        try{
+          var sub=await r.pushManager.getSubscription();
+          put('   pushManager sub: '+(sub?('WI endpoint='+sub.endpoint.slice(0,60)+'…'):'NON (pa gen token FCM)'));
+        }catch(e){put('   pushManager erè: '+(e.name+': '+e.message));}
+      }
+    }catch(e){put('SW erè: '+e.message);}
+    try{
+      var res=await fetch('https://fcm.googleapis.com/',{mode:'no-cors'});
+      put('\nFCM rezo: OK (sèvè a reponn)');
+    }catch(e){put('\nFCM rezo: BLOKE → '+e.message);}
+    window.OneSignalDeferred.push(function(OneSignal){
+      try{
+        var ps=OneSignal.User.PushSubscription;
+        put('\nOneSignal permission: '+OneSignal.Notifications.permission);
+        put('OneSignal optedIn: '+ps.optedIn);
+        put('OneSignal subscription ID: '+(ps.id||'okenn'));
+        put('OneSignal token: '+(ps.token?ps.token.slice(0,40)+'…':'OKENN'));
+      }catch(e){put('\nOneSignal erè: '+e.message);}
+      put('\nDènye mesaj/erè yo:');
+      put(logs.length?logs.join('\n'):'(anyen kapte ankò — peze 🔔 Aktive notifikasyon, epi retounen peze ▶ Tès)');
+    });
+  }
+
+  try{
+    if(/[?&]diag=1/.test(location.search)){ localStorage.setItem('stoa_diag','1'); }
+    if(/[?&]diag=0/.test(location.search)){ localStorage.removeItem('stoa_diag'); }
+    if(localStorage.getItem('stoa_diag')==='1'){ $('diagBtn').style.display='block'; }
+  }catch(e){}
+  (function(){
+    var n=0,t=null;
+    document.addEventListener('click',function(e){
+      var el=e.target;
+      if(el && el.textContent && /^STOA v20/.test(el.textContent.trim()) && el.children.length===0){
+        n++; clearTimeout(t); t=setTimeout(function(){n=0;},2000);
+        if(n>=5){ try{localStorage.setItem('stoa_diag','1');}catch(x){} $('diagBtn').style.display='block'; n=0; }
+      }
+    });
+  })();
+  $('diagBtn').onclick=function(){ $('diagPanel').style.display='block'; run(); };
+  $('diagRun').onclick=run;
+  $('diagClose').onclick=function(){ $('diagPanel').style.display='none'; };
+  $('diagCopy').onclick=function(){
+    try{ navigator.clipboard.writeText(out.textContent); alert('Kopye ✔'); }catch(e){ alert('Kopye manyèlman'); }
+  };
+  $('diagReset').onclick=async function(){
+    if(!confirm('Efase service workers ak kach la, epi rechaje paj la?')) return;
+    try{
+      var regs=await navigator.serviceWorker.getRegistrations();
+      for(var i=0;i<regs.length;i++){ await regs[i].unregister(); }
+      var keys=await caches.keys();
+      for(var j=0;j<keys.length;j++){ await caches.delete(keys[j]); }
+    }catch(e){}
+    location.reload();
+  };
+})();
+</script>
 </body>
 </html>
