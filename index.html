@@ -1479,7 +1479,7 @@ window.addEventListener('error', function(e){
     </div>
 
     <div class="about-contact" id="aboutContactDisplay" style="display:none;"></div>
-    <div style="opacity:.45;font-size:11px;text-align:center;margin:14px 0 4px;">STOA v2026.11.01-p</div>
+    <div style="opacity:.45;font-size:11px;text-align:center;margin:14px 0 4px;">STOA v2026.11.02-q</div>
 
     <div class="admin-only" style="display:none;margin-top:20px;">
       <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
@@ -5551,34 +5551,72 @@ window.addEventListener('error', function(e){
   // ==================== FEN AYITICHAT ====================
 </script>
 
-<!-- Bouton notifikasyon push (OneSignal) -->
+<!-- Bouton notifikasyon push (OneSignal) : lojik -->
 <script>
 (function(){
   var btn=document.getElementById('enableNotifBtn');
+  var st=document.getElementById('notifState');
+  function say(t){ if(st) st.textContent=t; }
   window.OneSignalDeferred=window.OneSignalDeferred||[];
   window.OneSignalDeferred.push(async function(OneSignal){
     try{
-      // Montre bouton an sèlman si itilizatè a poko abòne
       var ps0=OneSignal.User.PushSubscription;
-      function chk(){ var ok=(ps0.optedIn && ps0.token); btn.style.display=ok?'none':'block'; var st=document.getElementById('notifState'); if(st&&ok){ st.textContent='✅ Notifikasyon aktive sou aparèy sa a.'; } }
+      function chk(){
+        var ok=(ps0.optedIn && ps0.token);
+        btn.style.display=ok?'none':'block';
+        if(ok) say('✅ Notifikasyon aktive sou aparèy sa a.');
+      }
       chk(); setTimeout(chk,3000); setTimeout(chk,8000);
-      OneSignal.User.PushSubscription.addEventListener('change',function(e){
-        if(e.current && e.current.optedIn && e.current.token){ btn.style.display='none'; var st=document.getElementById('notifState'); if(st){ st.textContent='✅ Notifikasyon aktive sou aparèy sa a.'; } }
-      });
+      ps0.addEventListener('change',chk);
     }catch(e){ btn.style.display='block'; }
   });
-  btn.addEventListener('click',function(){
+  // Montre bouton an menm si SDK a pa chaje (pou itilizatè a ka wè mesaj erè)
+  setTimeout(function(){ if(btn.style.display==='none' && !(window.OneSignal&&window.OneSignal.User)){ btn.style.display='block'; } },4000);
+  btn.style.display='block';
+
+  btn.addEventListener('click',async function(){
+    btn.disabled=true;
+    say('⏳ Ap mande pèmisyon...');
+    // 1) Demann natif la dirèkteman nan klik la (Chrome mande yon jès itilizatè)
+    var perm='default';
+    try{
+      if(!('Notification' in window)){ say('❌ Navigatè sa a pa sipòte notifikasyon.'); btn.disabled=false; return; }
+      perm=await Notification.requestPermission();
+    }catch(e){ say('❌ Erè pèmisyon: '+e.message); btn.disabled=false; return; }
+    if(perm!=='granted'){
+      say(perm==='denied'
+        ? '🚫 Notifikasyon bloke. Peze ikòn kadna bò adrès la → Paramèt sit → Notifications → Pèmèt, epi eseye ankò.'
+        : 'Ou pa t aksepte demann lan. Eseye ankò.');
+      btn.disabled=false; return;
+    }
+    say('✅ Pèmisyon bon. Ap konekte ak sèvis la...');
+    // 2) OneSignal
+    var finished=false;
+    var timer=setTimeout(function(){
+      if(!finished){
+        say('⚠️ OneSignal pa reponn (SDK a pa chaje). Tcheke koneksyon ou, dezaktive adblock/VPN, epi rechaje paj la.');
+        btn.disabled=false;
+      }
+    },8000);
     window.OneSignalDeferred.push(async function(OneSignal){
       try{
-        await OneSignal.Notifications.requestPermission();
-        if(OneSignal.Notifications.permission){
-          await OneSignal.User.PushSubscription.optIn();
+        await OneSignal.User.PushSubscription.optIn();
+        // tann jiska 10 segonn pou token an parèt
+        var ps=OneSignal.User.PushSubscription, n=0;
+        while(!ps.token && n<20){ await new Promise(function(r){setTimeout(r,500);}); n++; }
+        finished=true; clearTimeout(timer);
+        if(ps.token){
+          say('✅ Notifikasyon aktive sou aparèy sa a.');
           btn.style.display='none';
-          alert('✅ Notifikasyon aktive!');
         } else {
-          alert('Notifikasyon bloke. Aktive yo nan paramèt sit la (ikòn kadna bò adrès la).');
+          say('⚠️ Pèmisyon bon, men telefòn lan poko jwenn token push. Eseye ankò nan yon minit, oswa peze 🔍 pou wè rapò a.');
+          btn.disabled=false;
         }
-      }catch(e){ console.log('Push erè:',e); alert('Erè: '+(e&&e.message?e.message:e)); }
+      }catch(e){
+        finished=true; clearTimeout(timer);
+        say('❌ Erè OneSignal: '+(e&&e.message?e.message:e));
+        btn.disabled=false;
+      }
     });
   });
 })();
