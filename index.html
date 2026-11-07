@@ -1496,8 +1496,28 @@ window.addEventListener('error', function(e){
       <span>Mwen li epi mwen dakò ak kondisyon Mache STOA yo.</span>
     </label>
     <button class="add-btn" id="macheEnter" disabled style="opacity:.45; width:100%;">Antre nan Mache a</button>
-    <div id="macheOpen" style="display:none; text-align:center; padding:28px 10px; color:var(--parchment-dim); font-size:14px; line-height:1.7;">
-      ✅ Ou dakò ak kondisyon yo.<br>Pwodwi yo ap parèt isit la talè.
+    <div id="macheOpen" style="display:none; text-align:center; padding:14px 10px 0; color:var(--parchment-dim); font-size:14px;">✅ Ou dakò ak kondisyon yo.</div>
+
+    <div id="macheListWrap" style="display:none; margin-top:18px;">
+      <button class="add-btn admin-only" id="showAddProduct" style="display:none">+ Ajoute yon pwodwi</button>
+      <div class="add-form" id="addProductForm">
+        <input type="text" id="prodName" placeholder="Non pwodwi a">
+        <input type="number" id="prodPrice" placeholder="Pri an goud (HTG)" min="1">
+        <input type="number" id="prodQty" placeholder="Kantite ki disponib" min="1">
+        <textarea id="prodDesc" placeholder="Deskripsyon kout (opsyonèl)"></textarea>
+        <label style="font-size:12px;color:var(--parchment-dim);display:block;margin-bottom:6px;">Foto pwodwi a (obligatwa):</label>
+        <input type="file" id="prodPhoto" accept="image/*">
+        <label style="font-size:12px;color:var(--parchment-dim);display:block;margin-bottom:6px;">Mòso videyo (opsyonèl, maksimòm 5 Mo):</label>
+        <input type="file" id="prodVideo" accept="video/*">
+        <div class="upload-progress" id="prodProgress"><div class="upload-progress-bar" id="prodBar"></div></div>
+        <div class="upload-status" id="prodStatus"></div>
+        <div class="add-form-actions">
+          <button class="add-cancel" id="cancelAddProduct">Anile</button>
+          <button class="add-save" id="saveAddProduct">Anrejistre</button>
+        </div>
+      </div>
+      <div id="macheList" style="display:grid; gap:14px; margin-top:14px;"></div>
+      <div id="macheEmpty" style="display:none; text-align:center; color:var(--parchment-dim); font-size:14px; padding:24px 0;">Poko gen pwodwi nan mache a.</div>
     </div>
   </section>
 
@@ -3404,6 +3424,130 @@ window.addEventListener('error', function(e){
       finishSave(url, isVideo);
     }
   });
+
+  // ---- Mache STOA: pwodwi yo (admin ajoute, itilizatè wè foto/pri/kantite) ----
+  const macheRef = db.ref('mache_products');
+  const macheWrap = document.getElementById('macheListWrap');
+  function macheAccepted(){ try{ return localStorage.getItem('stoa_mache_accept_v') === '1'; }catch(e){ return false; } }
+  let macheSnap = null;
+  function macheGate(){ macheWrap.style.display = (macheAccepted() || isAdmin) ? 'block' : 'none'; if(macheSnap) macheRender(macheSnap); }
+  macheGate();
+  document.querySelector('nav button[data-panel="mache"]').addEventListener('click', macheGate);
+  document.getElementById('macheEnter').addEventListener('click', ()=> setTimeout(macheGate, 0));
+
+  document.getElementById('showAddProduct').addEventListener('click', ()=> document.getElementById('addProductForm').classList.add('open'));
+  document.getElementById('cancelAddProduct').addEventListener('click', ()=> document.getElementById('addProductForm').classList.remove('open'));
+
+  document.getElementById('saveAddProduct').addEventListener('click', ()=>{
+    const name = document.getElementById('prodName').value.trim();
+    const price = Math.round(parseFloat(document.getElementById('prodPrice').value) || 0);
+    const qty = Math.floor(parseFloat(document.getElementById('prodQty').value) || 0);
+    const desc = document.getElementById('prodDesc').value.trim();
+    const photo = document.getElementById('prodPhoto').files[0];
+    const video = document.getElementById('prodVideo').files[0];
+    if(!name){ alert('Mete non pwodwi a.'); return; }
+    if(price < 1){ alert('Mete yon pri an goud.'); return; }
+    if(qty < 1){ alert('Mete kantite ki disponib la.'); return; }
+    if(!photo){ alert('Chwazi yon foto pou pwodwi a.'); return; }
+    if(video && video.size > 5 * 1024 * 1024){ alert('Videyo a twò gwo (maksimòm 5 Mo).'); return; }
+    const btn = document.getElementById('saveAddProduct');
+    const wrap = document.getElementById('prodProgress');
+    const bar = document.getElementById('prodBar');
+    const status = document.getElementById('prodStatus');
+    function fail(err){ alert('Erè: ' + (err && err.message ? err.message : err)); btn.disabled = false; wrap.classList.remove('show'); status.textContent=''; }
+    btn.disabled = true; wrap.classList.add('show'); bar.style.width = '20%'; status.textContent = 'Ap trete foto a...';
+    resizeImageToBase64(photo, 700, (photoUrl)=>{
+      function save(videoUrl){
+        const nref = macheRef.push();
+        nref.set({ name, price, qty, desc, photo: photoUrl, hasVideo: !!videoUrl, createdAt: Date.now() })
+          .then(()=> videoUrl ? db.ref('mache_media/' + nref.key).set(videoUrl) : null)
+          .then(()=>{
+            ['prodName','prodPrice','prodQty','prodDesc','prodPhoto','prodVideo'].forEach(id=> document.getElementById(id).value = '');
+            wrap.classList.remove('show'); status.textContent=''; btn.disabled = false;
+            document.getElementById('addProductForm').classList.remove('open');
+          }).catch(fail);
+      }
+      bar.style.width = '50%';
+      if(video){
+        status.textContent = 'Ap trete videyo a...';
+        fileToBase64(video, (pct)=>{ bar.style.width = (50 + pct/2) + '%'; }, (dataUrl)=> save(dataUrl), fail);
+      } else { save(null); }
+    }, fail);
+  });
+
+  function macheRender(snap){
+    macheSnap = snap;
+    const list = document.getElementById('macheList');
+    list.innerHTML = '';
+    const items = [];
+    snap.forEach(ch => { items.push(Object.assign({ id: ch.key }, ch.val())); });
+    items.sort((a,b)=> (b.createdAt||0) - (a.createdAt||0));
+    document.getElementById('macheEmpty').style.display = items.length ? 'none' : 'block';
+    items.forEach(it=>{
+      const card = document.createElement('div');
+      card.className = 'wisdom-card';
+      card.style.cssText = 'text-align:left; padding:0; overflow:hidden;';
+      const img = document.createElement('img');
+      img.src = it.photo || ''; img.alt = it.name || '';
+      img.style.cssText = 'width:100%; display:block; max-height:340px; object-fit:cover;';
+      const body = document.createElement('div');
+      body.style.cssText = 'padding:14px;';
+      const nm = document.createElement('div');
+      nm.textContent = it.name || '';
+      nm.style.cssText = 'font-size:17px; color:var(--parchment); margin-bottom:6px;';
+      const pr = document.createElement('div');
+      pr.textContent = (Number(it.price)||0).toLocaleString('fr-FR') + ' HTG';
+      pr.style.cssText = 'font-size:18px; color:var(--bronze-bright); margin-bottom:4px;';
+      const q = document.createElement('div');
+      const left = Number(it.qty) || 0;
+      q.textContent = left > 0 ? ('Disponib: ' + left) : 'Epize';
+      q.style.cssText = 'font-size:13px; color:' + (left > 0 ? 'var(--parchment-dim)' : '#d46a6a') + '; margin-bottom:8px;';
+      body.appendChild(nm); body.appendChild(pr); body.appendChild(q);
+      if(it.desc){
+        const d = document.createElement('p');
+        d.textContent = it.desc;
+        d.style.cssText = 'font-size:14px; line-height:1.6; color:var(--parchment-dim); margin-bottom:10px;';
+        body.appendChild(d);
+      }
+      if(it.hasVideo){
+        const vb = document.createElement('button');
+        vb.className = 'add-btn'; vb.textContent = '▶ Gade videyo a'; vb.style.marginBottom = '8px';
+        vb.addEventListener('click', ()=>{
+          vb.disabled = true; vb.textContent = 'Ap chaje...';
+          db.ref('mache_media/' + it.id).once('value').then(sn=>{
+            const v = document.createElement('video');
+            v.src = sn.val() || ''; v.controls = true; v.playsInline = true;
+            v.style.cssText = 'width:100%; border-radius:8px; margin-bottom:8px;';
+            vb.replaceWith(v);
+          }).catch(()=>{ vb.disabled = false; vb.textContent = '▶ Gade videyo a'; alert('Videyo a pa t kapab chaje.'); });
+        });
+        body.appendChild(vb);
+      }
+      if(isAdmin){
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; gap:8px; margin-top:6px;';
+        const eq = document.createElement('button');
+        eq.className = 'add-cancel'; eq.textContent = 'Chanje kantite';
+        eq.addEventListener('click', ()=>{
+          const v = prompt('Nouvo kantite pou "' + it.name + '" (0 = epize):', String(left));
+          if(v === null) return;
+          const n = Math.max(0, Math.floor(Number(v)));
+          if(isNaN(n)) return;
+          macheRef.child(it.id).update({ qty: n });
+        });
+        const del = document.createElement('button');
+        del.className = 'add-cancel'; del.textContent = 'Efase';
+        del.addEventListener('click', ()=>{
+          if(!confirm('Efase "' + it.name + '" nan mache a?')) return;
+          macheRef.child(it.id).remove();
+          db.ref('mache_media/' + it.id).remove();
+        });
+        row.appendChild(eq); row.appendChild(del); body.appendChild(row);
+      }
+      card.appendChild(img); card.appendChild(body); list.appendChild(card);
+    });
+  }
+  macheRef.on('value', macheRender);
 
   // ---- Add wisdom form toggle ----
   document.getElementById('showAddWisdom').addEventListener('click', ()=> document.getElementById('addWisdomForm').classList.add('open'));
