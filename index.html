@@ -1133,6 +1133,7 @@ window.addEventListener('error', function(e){
   <button data-panel="videos">Videyo</button>
   <button data-panel="wisdom">Sajès</button>
   <button data-panel="library">Bibliyotèk</button>
+  <button data-panel="mache">Mache</button>
   <button data-panel="chat">Chat</button>
   <button data-panel="ayitichat">AyitiChat</button>
   <button data-panel="about">Sou Mwen</button>
@@ -1440,6 +1441,63 @@ window.addEventListener('error', function(e){
         <div class="ac-upload-bar"><div class="ac-upload-bar-fill" id="acUploadBarFill"></div></div>
         <span id="acUploadPercent">0%</span>
       </div>
+    </div>
+  </section>
+
+  <section class="panel" id="mache">
+    <div class="section-title">Mache STOA</div>
+
+    <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
+      <div class="section-title" style="font-size:17px; margin-bottom:10px;">Prensip nou yo</div>
+      <ol style="font-size:14px; line-height:1.8; color:var(--parchment-dim); padding-left:20px;">
+        <li><b style="color:var(--parchment)">Konfyans anvan tout</b>: tout bagay nou fè nan mache a dwe onèt.</li>
+        <li><b style="color:var(--parchment)">Transparans</b>: pri, kantite ak kondisyon livrezon yo klè.</li>
+        <li><b style="color:var(--parchment)">Respè</b>: pa gen ensilt, manipilasyon ni diskriminasyon.</li>
+        <li><b style="color:var(--parchment)">Kominote ayisyen an dabò</b>: nou ankouraje pwodwi ak sèvis lokal.</li>
+        <li><b style="color:var(--parchment)">Livrezon trankil ak respè</b> nan tout Ayiti.</li>
+      </ol>
+    </div>
+
+    <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
+      <div class="section-title" style="font-size:17px; margin-bottom:10px;">Kijan l mache</div>
+      <ol style="font-size:14px; line-height:1.8; color:var(--parchment-dim); padding-left:20px;">
+        <li>Moun ki enskri sou STOA wè foto pwodwi a, pri a ak kantite ki disponib.</li>
+        <li>Li chwazi kantite li vle a, epi lè l fini li voye yon <b style="color:var(--parchment)">demann</b>.</li>
+        <li>Admin STOA gade demann lan epi li <b style="color:var(--parchment)">konfime</b> li oswa li refize l.</li>
+        <li>Apre konfimasyon an, livrezon an òganize ak ou.</li>
+      </ol>
+      <p style="font-size:12px; color:var(--parchment-dim); margin-top:8px;">Eta yon demann: An atant → Konfime → Nan livrezon → Livre (oswa Refize / Anile).</p>
+    </div>
+
+    <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
+      <div class="section-title" style="font-size:17px; margin-bottom:10px;">Règ pou achtè yo</div>
+      <ul style="font-size:14px; line-height:1.8; color:var(--parchment-dim); padding-left:20px;">
+        <li>Ou dwe enskri sou STOA pou fè yon demann.</li>
+        <li>Bay yon nimewo telefòn ak yon adrès/zòn livrezon ki vre.</li>
+        <li>Pa fè fo demann. Sa ka lakòz ou pèdi kont ou.</li>
+        <li>Pa janm bay modpas ou bay pèsonn, ni moun k ap di li se admin.</li>
+        <li>Siyale nenpòt pwoblèm nan 48è apre livrezon an.</li>
+        <li>Respekte livrè a ak tout moun nan chèn nan.</li>
+      </ul>
+    </div>
+
+    <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
+      <div class="section-title" style="font-size:17px; margin-bottom:10px;">Sa Mache a pa aksepte</div>
+      <p style="font-size:14px; line-height:1.8; color:var(--parchment-dim);">Zam, dwòg, pwodwi kontrefè, kontni pònografik, bagay vòlè, ak tout sa lalwa ayisyen entèdi.</p>
+    </div>
+
+    <div class="wisdom-card" style="text-align:left; margin-bottom:16px;">
+      <div class="section-title" style="font-size:17px; margin-bottom:10px;">Sanksyon</div>
+      <p style="font-size:14px; line-height:1.8; color:var(--parchment-dim);">Avètisman → sispansyon tanporè → pèt kont definitif. Admin STOA gen dènye mo nan konfli yo.</p>
+    </div>
+
+    <label id="macheAgreeRow" style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.5; margin:18px 0 12px; cursor:pointer;">
+      <input type="checkbox" id="macheAgree" style="margin-top:3px; width:18px; height:18px; flex:none;">
+      <span>Mwen li epi mwen dakò ak kondisyon Mache STOA yo.</span>
+    </label>
+    <button class="add-btn" id="macheEnter" disabled style="opacity:.45; width:100%;">Antre nan Mache a</button>
+    <div id="macheOpen" style="display:none; text-align:center; padding:28px 10px; color:var(--parchment-dim); font-size:14px; line-height:1.7;">
+      ✅ Ou dakò ak kondisyon yo.<br>Pwodwi yo ap parèt isit la talè.
     </div>
   </section>
 
@@ -5730,6 +5788,33 @@ window.addEventListener('error', function(e){
     }catch(e){}
     location.reload();
   };
+})();
+</script>
+<script>
+(function(){
+  var VER = 1; // ogmante nimewo sa a si kondisyon yo chanje: tout moun dwe dakò ankò
+  var KEY = 'stoa_mache_accept_v';
+  var cb = document.getElementById('macheAgree');
+  var btn = document.getElementById('macheEnter');
+  var row = document.getElementById('macheAgreeRow');
+  var open = document.getElementById('macheOpen');
+  if(!cb || !btn) return;
+  function accepted(){ try{ return localStorage.getItem(KEY) == String(VER); }catch(e){ return false; } }
+  function showOpen(){ row.style.display='none'; btn.style.display='none'; open.style.display='block'; }
+  if(accepted()) showOpen();
+  cb.addEventListener('change', function(){
+    btn.disabled = !cb.checked;
+    btn.style.opacity = cb.checked ? '1' : '.45';
+  });
+  btn.addEventListener('click', function(){
+    if(!cb.checked) return;
+    try{ localStorage.setItem(KEY, String(VER)); }catch(e){}
+    try{
+      var u = firebase.auth().currentUser;
+      if(u){ firebase.database().ref('mache_accept/'+u.uid).set({ version: VER, at: firebase.database.ServerValue.TIMESTAMP }); }
+    }catch(e){}
+    showOpen();
+  });
 })();
 </script>
 </body>
