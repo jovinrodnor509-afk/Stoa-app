@@ -5961,5 +5961,19 @@ window.addEventListener('error', function(e){
   });
 })();
 </script>
+<script>
+(function(){
+  try{
+    var panel = new URLSearchParams(location.search).get('panel');
+    if(!panel) return;
+    window.addEventListener('load', function(){
+      setTimeout(function(){
+        var b = document.querySelector('nav button[data-panel="'+panel.replace(/[^a-z0-9_-]/gi,'')+'"]');
+        if(b) b.click();
+      }, 400);
+    });
+  }catch(e){}
+})();
+</script>
 </body>
 </html>
