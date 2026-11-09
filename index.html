@@ -1499,6 +1499,7 @@ window.addEventListener('error', function(e){
     <div id="macheOpen" style="display:none; text-align:center; padding:14px 10px 0; color:var(--parchment-dim); font-size:14px;">✅ Ou dakò ak kondisyon yo.</div>
 
     <div id="macheListWrap" style="display:none; margin-top:18px;">
+      <div id="macheAdminOrders" style="display:none; margin-bottom:22px;"></div>
       <button class="add-btn admin-only" id="showAddProduct" style="display:none">+ Ajoute yon pwodwi</button>
       <div class="add-form" id="addProductForm">
         <input type="text" id="prodName" placeholder="Non pwodwi a">
@@ -1518,6 +1519,7 @@ window.addEventListener('error', function(e){
       </div>
       <div id="macheList" style="display:grid; gap:14px; margin-top:14px;"></div>
       <div id="macheEmpty" style="display:none; text-align:center; color:var(--parchment-dim); font-size:14px; padding:24px 0;">Poko gen pwodwi nan mache a.</div>
+      <div id="macheMyOrders" style="display:none; margin-top:26px;"></div>
     </div>
   </section>
 
@@ -3454,7 +3456,7 @@ window.addEventListener('error', function(e){
     const wrap = document.getElementById('prodProgress');
     const bar = document.getElementById('prodBar');
     const status = document.getElementById('prodStatus');
-    function fail(err){ alert('Erè: ' + (err && err.message ? err.message : err)); btn.disabled = false; wrap.classList.remove('show'); status.textContent=''; }
+    function fail(err){ var cu = firebase.auth().currentUser; alert('Erè: ' + (err && err.message ? err.message : err) + '\n\nUID: ' + (cu ? cu.uid : 'pa konekte') + '\nAnonim: ' + (cu && cu.isAnonymous ? 'wi' : 'non') + '\nAdmin nan app la: ' + (isAdmin ? 'wi' : 'non') + '\nUID admin ki nan kòd la: ' + ADMIN_UID); btn.disabled = false; wrap.classList.remove('show'); status.textContent=''; }
     btn.disabled = true; wrap.classList.add('show'); bar.style.width = '20%'; status.textContent = 'Ap trete foto a...';
     resizeImageToBase64(photo, 700, (photoUrl)=>{
       function save(videoUrl){
@@ -3523,6 +3525,7 @@ window.addEventListener('error', function(e){
         });
         body.appendChild(vb);
       }
+      if(!isAdmin && left > 0){ body.appendChild(macheBuyBox(it, left)); }
       if(isAdmin){
         const row = document.createElement('div');
         row.style.cssText = 'display:flex; gap:8px; margin-top:6px;';
@@ -3548,6 +3551,145 @@ window.addEventListener('error', function(e){
     });
   }
   macheRef.on('value', macheRender);
+
+  // ---- Mache STOA: demann (achte) ----
+  const MACHE_LABEL = { an_atant:'An atant', konfime:'Konfime', nan_livrezon:'Nan livrezon', livre:'Livre', refize:'Refize', anile:'Anile' };
+  const MACHE_COLOR = { an_atant:'#d9b26a', konfime:'#6fbf8b', nan_livrezon:'#6fa8d9', livre:'#6fbf8b', refize:'#d46a6a', anile:'#9a9a9a' };
+  function mEl(tag, text, css){ const e = document.createElement(tag); if(text != null) e.textContent = text; if(css) e.style.cssText = css; return e; }
+  function mFmt(n){ return (Number(n)||0).toLocaleString('fr-FR') + ' HTG'; }
+  function mDate(t){ try{ return new Date(t).toLocaleString('fr-FR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
+
+  function macheBuyBox(it, left){
+    const box = mEl('div', null, 'margin-top:6px;');
+    const open = mEl('button', '🛒 Fè demann'); open.className = 'add-btn';
+    const form = mEl('div'); form.className = 'add-form open'; form.style.display = 'none'; form.style.marginTop = '10px';
+    const qty = mEl('input'); qty.type = 'number'; qty.min = '1'; qty.max = String(left); qty.value = '1'; qty.placeholder = 'Kantite ou vle a';
+    const phone = mEl('input'); phone.type = 'tel'; phone.placeholder = 'Nimewo telefòn ou'; try{ phone.value = localStorage.getItem('stoa_ac_phone') || ''; }catch(e){}
+    const addr = mEl('input'); addr.type = 'text'; addr.placeholder = 'Adrès / zòn livrezon';
+    const note = mEl('textarea'); note.placeholder = 'Nòt pou admin nan (opsyonèl)';
+    const total = mEl('div', '', 'font-size:15px; color:var(--bronze-bright); margin:6px 0 10px;');
+    function upd(){ const n = Math.floor(Number(qty.value)||0); total.textContent = 'Total: ' + mFmt(n * (Number(it.price)||0)); }
+    qty.addEventListener('input', upd); upd();
+    const actions = mEl('div'); actions.className = 'add-form-actions';
+    const cancel = mEl('button', 'Anile'); cancel.className = 'add-cancel';
+    const send = mEl('button', 'Voye demann'); send.className = 'add-save';
+    actions.appendChild(cancel); actions.appendChild(send);
+    [qty, phone, addr, note, total, actions].forEach(x=> form.appendChild(x));
+    open.addEventListener('click', ()=>{ form.style.display = form.style.display === 'none' ? 'block' : 'none'; });
+    cancel.addEventListener('click', ()=>{ form.style.display = 'none'; });
+    send.addEventListener('click', ()=>{
+      const n = Math.floor(Number(qty.value)||0);
+      if(n < 1 || n > left){ alert('Kantite a dwe ant 1 ak ' + left + '.'); return; }
+      if(phone.value.trim().length < 8){ alert('Mete yon nimewo telefòn ki valid.'); return; }
+      if(addr.value.trim().length < 4){ alert('Mete adrès oswa zòn livrezon an.'); return; }
+      const u = firebase.auth().currentUser;
+      if(!u){ alert('Rafrechi paj la epi eseye ankò.'); return; }
+      send.disabled = true; send.textContent = 'Ap voye...';
+      let nm = ''; try{ nm = localStorage.getItem('stoa_name') || ''; }catch(e){}
+      db.ref('mache_orders/' + u.uid).push({
+        uid: u.uid, productId: it.id, name: it.name || '', price: Number(it.price)||0, qty: n, total: n * (Number(it.price)||0),
+        buyerName: nm, phone: phone.value.trim(), address: addr.value.trim(), note: note.value.trim(),
+        status: 'an_atant', createdAt: Date.now()
+      }).then(()=>{
+        form.style.display = 'none'; open.style.display = 'none';
+        box.appendChild(mEl('div', '✅ Demann ou voye. Li an atant, admin nan ap konfime l.', 'font-size:14px; color:#6fbf8b; margin-top:6px;'));
+      }).catch(e=>{ send.disabled = false; send.textContent = 'Voye demann'; alert('Erè: ' + (e && e.message ? e.message : e)); });
+    });
+    box.appendChild(open); box.appendChild(form);
+    return box;
+  }
+
+  function statusBadge(st){
+    return mEl('span', MACHE_LABEL[st] || st, 'font-size:12px; padding:2px 8px; border-radius:10px; border:1px solid ' + (MACHE_COLOR[st]||'#888') + '; color:' + (MACHE_COLOR[st]||'#888') + ';');
+  }
+
+  // Demann itilizatè a
+  let myOrdersRef = null;
+  function renderMyOrders(snap){
+    const c = document.getElementById('macheMyOrders');
+    c.innerHTML = '';
+    const items = [];
+    snap.forEach(ch => { items.push(Object.assign({ id: ch.key }, ch.val())); });
+    if(!items.length){ c.style.display = 'none'; return; }
+    items.sort((a,b)=> (b.createdAt||0) - (a.createdAt||0));
+    c.style.display = 'block';
+    c.appendChild(mEl('div', 'Demann mwen yo', "font-family:'Cormorant Garamond',serif; font-size:20px; color:var(--parchment); margin-bottom:10px;"));
+    items.forEach(o=>{
+      const card = mEl('div', null, 'border:1px solid rgba(176,133,79,0.25); border-radius:10px; padding:12px; margin-bottom:10px;');
+      const top = mEl('div', null, 'display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;');
+      top.appendChild(mEl('div', (o.qty||0) + ' × ' + (o.name||''), 'font-size:15px; color:var(--parchment);'));
+      top.appendChild(statusBadge(o.status));
+      card.appendChild(top);
+      card.appendChild(mEl('div', mFmt(o.total) + ' · ' + mDate(o.createdAt), 'font-size:13px; color:var(--parchment-dim);'));
+      if(o.status === 'refize' && o.reason) card.appendChild(mEl('div', 'Rezon: ' + o.reason, 'font-size:13px; color:#d46a6a; margin-top:4px;'));
+      if(o.status === 'an_atant'){
+        const b = mEl('button', 'Anile demann nan'); b.className = 'add-cancel'; b.style.marginTop = '8px';
+        b.addEventListener('click', ()=>{
+          if(!confirm('Anile demann sa a?')) return;
+          db.ref('mache_orders/' + o.uid + '/' + o.id).update({ status: 'anile' }).catch(e=> alert('Erè: ' + e.message));
+        });
+        card.appendChild(b);
+      }
+      c.appendChild(card);
+    });
+  }
+
+  // Demann pou admin
+  function renderAdminOrders(snap){
+    const c = document.getElementById('macheAdminOrders');
+    c.innerHTML = '';
+    const items = [];
+    snap.forEach(u => u.forEach(ch => { items.push(Object.assign({ id: ch.key }, ch.val())); }));
+    if(!items.length){ c.style.display = 'none'; return; }
+    items.sort((a,b)=> (b.createdAt||0) - (a.createdAt||0));
+    const pending = items.filter(o=> o.status === 'an_atant').length;
+    c.style.display = 'block';
+    c.appendChild(mEl('div', 'Demann yo (' + pending + ' an atant)', "font-family:'Cormorant Garamond',serif; font-size:20px; color:var(--parchment); margin-bottom:10px;"));
+    items.forEach(o=>{
+      const card = mEl('div', null, 'border:1px solid rgba(176,133,79,0.25); border-radius:10px; padding:12px; margin-bottom:10px;');
+      const top = mEl('div', null, 'display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;');
+      top.appendChild(mEl('div', (o.qty||0) + ' × ' + (o.name||''), 'font-size:15px; color:var(--parchment);'));
+      top.appendChild(statusBadge(o.status));
+      card.appendChild(top);
+      card.appendChild(mEl('div', mFmt(o.total) + ' · ' + mDate(o.createdAt), 'font-size:13px; color:var(--parchment-dim); margin-bottom:4px;'));
+      card.appendChild(mEl('div', '👤 ' + (o.buyerName || 'San non') + ' · 📞 ' + (o.phone||''), 'font-size:13px; color:var(--parchment-dim);'));
+      card.appendChild(mEl('div', '📍 ' + (o.address||''), 'font-size:13px; color:var(--parchment-dim);'));
+      if(o.note) card.appendChild(mEl('div', '📝 ' + o.note, 'font-size:13px; color:var(--parchment-dim);'));
+      const ref = db.ref('mache_orders/' + o.uid + '/' + o.id);
+      const row = mEl('div', null, 'display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;');
+      function btn(label, fn){ const b = mEl('button', label); b.className = 'add-cancel'; b.addEventListener('click', fn); row.appendChild(b); }
+      if(o.status === 'an_atant'){
+        btn('✅ Konfime', ()=>{
+          let ok = false;
+          db.ref('mache_products/' + o.productId + '/qty').transaction(cur=>{
+            cur = Number(cur) || 0;
+            if(cur >= o.qty){ ok = true; return cur - o.qty; }
+            ok = false; return;
+          }).then(r=>{
+            if(r.committed && ok){ return ref.update({ status: 'konfime', confirmedAt: Date.now() }); }
+            alert('Pa gen ase stòk pou konfime demann sa a.');
+          }).catch(e=> alert('Erè: ' + e.message));
+        });
+        btn('❌ Refize', ()=>{
+          const why = prompt('Rezon pou refize (opsyonèl):', '');
+          if(why === null) return;
+          ref.update({ status: 'refize', reason: why.trim() }).catch(e=> alert('Erè: ' + e.message));
+        });
+      } else if(o.status === 'konfime'){
+        btn('🚚 Nan livrezon', ()=> ref.update({ status: 'nan_livrezon' }).catch(e=> alert('Erè: ' + e.message)));
+      } else if(o.status === 'nan_livrezon'){
+        btn('📦 Make kòm livre', ()=> ref.update({ status: 'livre', deliveredAt: Date.now() }).catch(e=> alert('Erè: ' + e.message)));
+      }
+      if(row.childNodes.length) card.appendChild(row);
+      c.appendChild(card);
+    });
+  }
+
+  firebase.auth().onAuthStateChanged(u=>{
+    if(!u) return;
+    if(u.uid === ADMIN_UID){ db.ref('mache_orders').on('value', renderAdminOrders, ()=>{}); }
+    else { if(myOrdersRef) myOrdersRef.off(); myOrdersRef = db.ref('mache_orders/' + u.uid); myOrdersRef.on('value', renderMyOrders, ()=>{}); }
+  });
 
   // ---- Add wisdom form toggle ----
   document.getElementById('showAddWisdom').addEventListener('click', ()=> document.getElementById('addWisdomForm').classList.add('open'));
