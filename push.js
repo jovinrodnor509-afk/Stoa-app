@@ -4,7 +4,6 @@ window.OneSignalDeferred = window.OneSignalDeferred || [];
 (function(){
   // Chemen ki bon sou GitHub Pages (/Stoa-app/) kèlkeswa kote sit la ye
   var base = location.pathname.replace(/[^\/]*$/, '');          // ex: "/Stoa-app/"
-  var swPath = base.replace(/^\//, '') + 'sw.js';               // ex: "Stoa-app/sw.js"
 
   OneSignalDeferred.push(async function(OneSignal){
     try{
@@ -12,12 +11,17 @@ window.OneSignalDeferred = window.OneSignalDeferred || [];
         appId: "332143af-0e0c-4979-b52c-7f0bda021938",
         notifyButton: { enable: false },
         allowLocalhostAsSecureOrigin: true,
-        serviceWorkerPath: swPath,
+        path: base,                       // ex: "/Stoa-app/"
+        serviceWorkerPath: 'sw.js',       // => /Stoa-app/sw.js
         serviceWorkerParam: { scope: base }
       });
+      window.__osInitOk = true;
       var ph = localStorage.getItem('stoa_ac_phone');
       if(ph) { try{ await OneSignal.login(ph); }catch(e){} }
-    }catch(e){ console.log('OneSignal init erè:', e); }
+    }catch(e){
+      window.__osInitErr = (e && e.message) ? e.message : String(e);
+      console.log('OneSignal init erè:', e);
+    }
   });
 
   function toast(m){

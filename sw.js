@@ -13,7 +13,7 @@ const ASSETS = [
 ];
 
 // Fichye ki ka chanje souvan e ki toujou dwe soti nan rezo a anvan (rezo-anvan, kach kòm sekou)
-const NETWORK_FIRST = ['./', './index.html', './manifest.json'];
+const NETWORK_FIRST = ['./', './index.html', './manifest.json', './push.js'];
 
 function isNetworkFirst(url){
   const path = url.replace(self.location.origin, '');
