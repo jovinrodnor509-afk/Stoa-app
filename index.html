@@ -2046,11 +2046,16 @@ window.addEventListener('error', function(e){
       const base = location.pathname.replace(/[^\/]*$/, ''); // '/Stoa-app/' sou GitHub Pages, '/' sou Cloudflare
       await OneSignal.init({
         appId: ONESIGNAL_APP_ID,
-        serviceWorkerPath: base + 'sw.js',
+        path: base,
+        serviceWorkerPath: 'sw.js',
         serviceWorkerParam: { scope: base },
         notifyButton: { enable: false }
       });
-    }catch(e){ console.log('OneSignal init erè:', e); }
+      window.__osInitOk = true;
+    }catch(e){
+      window.__osInitErr = (e && e.message) ? e.message : String(e);
+      console.log('OneSignal init erè:', e);
+    }
   });
   // ---- Notifikasyon: voye pa yon Cloudflare Worker (kle sekrè a pa nan paj la ankò) ----
   let STOA_PUSH_URL = '';
@@ -5938,10 +5943,12 @@ window.addEventListener('error', function(e){
     var finished=false;
     var timer=setTimeout(function(){
       if(!finished){
-        say('⚠️ OneSignal pa reponn (SDK a pa chaje). Tcheke koneksyon ou, dezaktive adblock/VPN, epi rechaje paj la.');
+        var detay = window.__osInitErr ? (' Erè init: ' + window.__osInitErr + '.')
+          : (window.OneSignal ? ' (SDK a chaje, men inisyalizasyon an poko fini.)' : ' (SDK a pa chaje.)');
+        say('⚠️ OneSignal pa reponn.' + detay + ' Tcheke koneksyon ou, dezaktive adblock/VPN, epi rechaje paj la.');
         btn.disabled=false;
       }
-    },8000);
+    },20000);
     window.OneSignalDeferred.push(async function(OneSignal){
       try{
         await OneSignal.User.PushSubscription.optIn();
